@@ -9,7 +9,8 @@ paragraphs, tables) -> parents -> children.
 - Children are ~900-character pieces of a parent and are what search runs over. A table is never
   split; it becomes one child together with its short caption paragraph.
 
-Outputs in data/index/: pages/<doc>.json (cached conversion), parents.jsonl, chunks.jsonl.
+Outputs in data/index/: pages/<doc>.json (cached conversion), parents.jsonl, chunks.jsonl,
+embeddings.npy (+ embedding_ids.json).
 Run: python -m app.ingest
 """
 
@@ -18,6 +19,7 @@ import re
 import string
 import time
 
+import numpy as np
 import pymupdf4llm
 
 from app.config import INDEX_DIR, PDF_DIR
@@ -219,6 +221,23 @@ def main() -> None:
         with open(INDEX_DIR / f"{name}.jsonl", "w") as f:
             f.writelines(json.dumps(r) + "\n" for r in rows)
     print(f"total: {len(all_parents)} parents, {len(all_chunks)} chunks -> {INDEX_DIR}")
+    embed_chunks(all_chunks)
+
+
+def embed_chunks(chunks: list[dict]) -> None:
+    """Embed each chunk with its context header; skipped when embeddings for these chunks exist."""
+    from app.llm import embed  # needs the API key, so imported only when embedding
+
+    path, ids_path = INDEX_DIR / "embeddings.npy", INDEX_DIR / "embedding_ids.json"
+    ids = [c["id"] for c in chunks]
+    if path.exists() and ids_path.exists() and json.loads(ids_path.read_text()) == ids:
+        print("embeddings up to date")
+        return
+    t = time.time()
+    vecs = embed([c["context"] + "\n\n" + c["text"] for c in chunks])
+    np.save(path, vecs.astype(np.float16))
+    ids_path.write_text(json.dumps(ids))
+    print(f"embedded {len(ids)} chunks, dim {vecs.shape[1]} ({time.time() - t:.0f}s)")
 
 
 if __name__ == "__main__":
