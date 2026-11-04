@@ -1,0 +1,7 @@
+# Runtime dependencies for the agentic RAG app (installed by setup.sh on top of starter/requirements.txt).
+openai
+numpy
+pymupdf==1.28.2
+pymupdf4llm==1.28.2  # 2.x is an empty shim that expects pymupdf 2.x
+rank_bm25==0.2.2
+python-dotenv
