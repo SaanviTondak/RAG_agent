@@ -22,7 +22,7 @@ from datetime import datetime
 from pathlib import Path
 
 from app import agent
-from app.config import CHAT_MODEL, JUDGE_MODEL, PRICES, RERANK, ROOT
+from app.config import CHAT_MODEL, JUDGE_MODEL, PRICES, PROMPT_VERSION, RERANK, ROOT
 from app.llm import cost_usd
 from eval.graders import grade, split_facts
 
@@ -75,7 +75,7 @@ def read_jsonl(path: Path) -> list[dict]:
     return [json.loads(l) for l in open(path)] if path.exists() else []
 
 
-def run_answers(questions, run_dir: Path, model: str, rerank: bool, runs: int, max_usd: float,
+def run_answers(questions, run_dir: Path, model: str, rerank: bool, prompt: str, runs: int, max_usd: float,
                 reuse: list[str]) -> None:
     path = run_dir / "answers.jsonl"
     done = {(a["id"], a["run"]) for a in read_jsonl(path)}
@@ -84,14 +84,15 @@ def run_answers(questions, run_dir: Path, model: str, rerank: bool, runs: int, m
         for rid in reuse:
             for a in read_jsonl(RESULTS_DIR / rid / "answers.jsonl"):
                 if a["id"] in by_id and (a["id"], a["run"]) not in done and a["run"] < runs \
-                        and a["model"] == model and a["rerank"] == rerank:
+                        and a["model"] == model and a["rerank"] == rerank and a.get("prompt", "v1") == prompt:
                     f.write(json.dumps(a) + "\n")
                     done.add((a["id"], a["run"]))
     jobs = [(q, r) for r in range(runs) for q in questions if (q["id"], r) not in done]
     if not jobs:
         return
     est = len(jobs) * cost_usd(model, *EST_TOKENS)
-    print(f"Running {len(jobs)} answers with {short(model)} (rerank={rerank}); estimated ${est:.2f}, cap ${max_usd:.2f}")
+    print(f"Running {len(jobs)} answers with {short(model)} (rerank={rerank}, prompt {prompt}); "
+          f"estimated ${est:.2f}, cap ${max_usd:.2f}")
     if est > max_usd:
         raise SystemExit("Estimated cost exceeds --max-usd; raise the cap or narrow --ids.")
 
@@ -102,12 +103,12 @@ def run_answers(questions, run_dir: Path, model: str, rerank: bool, runs: int, m
         if spent[0] >= max_usd:
             return None
         try:
-            result = agent.run(q["question"], model=model, rerank=rerank)
+            result = agent.run(q["question"], model=model, rerank=rerank, prompt=prompt)
         except Exception as e:  # noqa: BLE001 - not saved, so --resume retries it
             print(f"  {q['id']} run {r}: FAILED ({type(e).__name__}: {e})")
             return None
         result.pop("question")
-        rec = {"id": q["id"], "run": r, "model": model, "rerank": rerank, "result": result}
+        rec = {"id": q["id"], "run": r, "model": model, "rerank": rerank, "prompt": prompt, "result": result}
         u = result["usage"]
         with lock:
             spent[0] += u["cost_usd"]
@@ -137,7 +138,7 @@ def grade_all(questions, run_dir: Path, judge: str, facts: dict) -> list[dict]:
             g = grade(q, a["result"], judge, facts)
         except Exception as e:  # noqa: BLE001 - a grader failure is recorded, not fatal
             g = {"pass": False, "score": 0.0, "reason": f"grader error: {e}", "details": {}, "judge_usage": None,
-                 "routing": None, "recall": None, "citations": None, "grounding": None}
+                 "routing": None, "recall": None, "citations": None, "grounding": None, "lead": None, "words": None}
         return {"id": a["id"], "run": a["run"], **g}
 
     with ThreadPoolExecutor(WORKERS) as pool:
@@ -201,9 +202,14 @@ def scorecard(questions, run_dir: Path, scores: list[dict], meta: dict, compare:
     ungrounded = [s for s in graded if not s["grounding"]["ok"]]
     nudges = sum(any(t["type"] == "nudge" for t in r["trace"]) for _, _, r in rows)
     fallbacks = sum(any(t["type"] == "fallback" for t in r["trace"]) for _, _, r in rows)
+    words = [s["words"] for s in graded if s.get("words") is not None]
+    leads = [s["lead"] for s in graded if s.get("lead")]
+    lead_cov = [s["lead"]["score"] for q, s, _ in rows if s.get("lead") and q["evaluation"] == "llm_judge"]
+    full_cov = [s["score"] for q, s, _ in rows if s.get("lead") and q["evaluation"] == "llm_judge"]
 
     md = [f"# Scorecard: {run_dir.name}", "",
-          f"- Answer model: `{short(meta['model'])}` | judge: `{short(meta['judge'])}` | rerank: {meta['rerank']} | "
+          f"- Answer model: `{short(meta['model'])}` | prompt: {meta.get('prompt', 'v1')} | judge: `{short(meta['judge'])}` | "
+          f"rerank: {meta['rerank']} | "
           f"set: {meta['set']} | runs per question: {meta['runs']} | graded {meta['graded_at']}", "",
           "## Headline", "",
           f"**{k}/{n} passed ({pct(k / n if n else 0)})**, 95% CI {pct(lo)}–{pct(hi)}; "
@@ -218,6 +224,10 @@ def scorecard(questions, run_dir: Path, scores: list[dict], meta: dict, compare:
           f"| Invalid citations (total) | {bad_cites} |",
           f"| Answers with numbers not found in any tool output | {len(ungrounded)}/{len(graded)} |",
           f"| Nudges / fallbacks | {nudges} / {fallbacks} |",
+          f"| Answer length, words: median / max | {percentile(words, .5):.0f} / {max(words, default=0)} |",
+          f"| Opening paragraph alone would pass | {sum(l['pass'] for l in leads)}/{len(leads)} |",
+          f"| Opening-paragraph fact coverage (llm_judge, mean) | "
+          f"{statistics.mean(lead_cov) if lead_cov else 0:.2f} (full answer {statistics.mean(full_cov) if full_cov else 0:.2f}) |",
           f"| Latency p50 / p95 / max | {percentile(lat, .5):.1f}s / {percentile(lat, .95):.1f}s / {max(lat, default=0):.1f}s |",
           f"| Tokens in / out (agent) | {sum(r['usage']['prompt_tokens'] for _, _, r in rows):,} / "
           f"{sum(r['usage']['completion_tokens'] for _, _, r in rows):,} |",
@@ -266,6 +276,7 @@ def main() -> None:
     ap.add_argument("--judge", default=JUDGE_MODEL)
     ap.add_argument("--runs", type=int, default=1)
     ap.add_argument("--no-rerank", action="store_true")
+    ap.add_argument("--prompt", default=PROMPT_VERSION, help="answer-format version in app/prompts.py")
     ap.add_argument("--max-usd", type=float, default=1.00, help="stop running the agent once this much is spent")
     ap.add_argument("--reuse", default="", help="comma-separated run ids whose matching answers are copied")
     ap.add_argument("--resume", help="continue an existing run directory")
@@ -286,12 +297,12 @@ def main() -> None:
             raise SystemExit("The holdout set is run once, on the final config. Pass --final to confirm.")
         if short(a.model) not in PRICES:
             print(f"warning: no price for {short(a.model)}; costs will show as $0")
-        run_id = f"{datetime.now():%Y%m%d-%H%M}_{a.set}_{short(a.model)}" + ("_norerank" if a.no_rerank else "") \
+        run_id = f"{datetime.now():%Y%m%d-%H%M}_{a.set}_{short(a.model)}_{a.prompt}" + ("_norerank" if a.no_rerank else "") \
             + (f"_{a.name}" if a.name else "")
         run_dir = RESULTS_DIR / run_id
         run_dir.mkdir(parents=True, exist_ok=True)
         meta = {"set": a.set, "ids": a.ids, "model": a.model, "judge": a.judge, "runs": a.runs,
-                "rerank": RERANK and not a.no_rerank}
+                "rerank": RERANK and not a.no_rerank, "prompt": a.prompt}
         (run_dir / "meta.json").write_text(json.dumps(meta, indent=2) + "\n")
 
     questions = load_set(meta["set"])
@@ -299,7 +310,7 @@ def main() -> None:
         wanted = set(meta["ids"].split(","))
         questions = [q for q in questions if q["id"] in wanted]
     if not a.regrade:
-        run_answers(questions, run_dir, meta["model"], meta["rerank"], meta["runs"], a.max_usd,
+        run_answers(questions, run_dir, meta["model"], meta["rerank"], meta.get("prompt", "v1"), meta["runs"], a.max_usd,
                     [r for r in a.reuse.split(",") if r])
     if a.no_grade:
         print(f"Answers saved in {run_dir / 'answers.jsonl'}; grade later with --regrade {run_dir.name}")

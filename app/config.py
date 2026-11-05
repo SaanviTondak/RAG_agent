@@ -23,7 +23,8 @@ FIREWORKS_BASE_URL = os.getenv("FIREWORKS_BASE_URL", "https://api.fireworks.ai/i
 _M = "accounts/fireworks/models/"
 # Dev default; the shipped model is chosen by the eval (eval/run_eval.py).
 CHAT_MODEL = os.getenv("CHAT_MODEL", _M + "glm-5p3")
-JUDGE_MODEL = os.getenv("JUDGE_MODEL", _M + "kimi-k3")
+# Chosen by eval/calibrate_judge.py + eval/judge_stress.py: same agreement as kimi-k3 at ~1/8 the cost.
+JUDGE_MODEL = os.getenv("JUDGE_MODEL", _M + "deepseek-v4p1-flash")
 EMBED_MODEL = os.getenv("EMBED_MODEL", _M + "qwen3-embedding-8b")
 RERANK_MODEL = os.getenv("RERANK_MODEL", _M + "qwen3-reranker-8b")
 # Qwen3-Embedding embeds documents as-is and prefixes queries with a task instruction.
@@ -42,6 +43,9 @@ PRICES = {
     "gpt-oss-120b": (0.15, 0.015, 0.60),
     "minimax-m3": (0.30, 0.06, 1.20),
 }
+
+# Answer-format version in app/prompts.py; chosen by the eval.
+PROMPT_VERSION = os.getenv("PROMPT_VERSION", "v1")
 
 TICKERS = {"AAPL": "Apple", "MSFT": "Microsoft", "GOOGL": "Alphabet"}
 

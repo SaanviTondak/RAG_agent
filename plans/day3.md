@@ -57,10 +57,29 @@ results/<run_id>/
 | 9 | Claude | First tune scorecard (dev answers reused + 20 tune questions) | ~$0.70 |
 
 ## Status (2026-11-05)
-- Done: steps 1, 2, 3, 4 (run `20261104-2305_dev_glm-5p3`, $0.16), 7 (32 questions: 22 tune, 10 holdout), 8.
-- Waiting on Saanvi: 2b + 7b (`eval/review_sheet.md`), 5 (`eval/hand_grading_sheet.md` -> `eval/human_grades.json`).
-- Then: 6 (`python -m eval.calibrate_judge`), 9 (`python -m eval.run_eval --set tune --reuse 20261104-2305_dev_glm-5p3`).
-- Spent on Day 3 so far: ~$0.29.
+- Done: steps 1, 2, 3, 4 (run `20261104-2305_dev_glm-5p3`, $0.16), 5 (all 10 pass), 6, 7 (32 questions: 22 tune, 10 holdout), 8.
+- Step 6 result: both judges agree with the human 10/10, but all answers passed, so added `eval/judge_stress.py`
+  (21 known edits to good answers). After fixing two badly planted cases, both judges catch 18/18 planted errors and
+  pass 3/3 harmless edits. **Judge = deepseek-v4p1-flash** (~1/8 of kimi-k3's cost); kimi-k3 grades deepseek's answers.
+- Added (Saanvi's verbosity concern): prompt v2 in `app/prompts.py` = answer every part in the opening paragraph,
+  bold-labelled bullets, cut filler, **no length cap** (truncation judged riskier than spread-out facts).
+  Safety-net metrics: words, "opening paragraph alone passes", opening-paragraph fact coverage.
+  `eval/compare_runs.py` does the paired v1 vs v2 comparison (+ blind preference vote). Keep v2 only if
+  full-answer coverage does not drop.
+- Step 9 done: `20261105-1447_tune_glm-5p3_v1_fresh` (32/32) vs `..._v2` (30/32). See
+  `results/compare_20261105-1447_tune_glm-5p3_v1_fresh__20261105-1447_tune_glm-5p3_v2.md`.
+  v2 put more facts in the opening paragraph (coverage 0.59 -> 0.72, p=0.04) but failed the safety net: full-answer
+  coverage fell 0.99 -> 0.95 (q_006, q_025 lost facts), answers got longer (median 115 -> 138 words), +1.4s, +23% cost;
+  blind preference 10 vs 8 (p=0.8). Noise check (v1 vs v1 on dev): 0 pass flips. **Decision: keep v1.**
+- Eval bugs found and fixed along the way: `lead()` treated "**bold**" openings as bullets; entity judge counted
+  runners-up as answers (prompt fixed + 3 stress cases, deepseek now 19/19 + 5/5); deepseek ran out of tokens mid-JSON
+  at max_tokens 4096 (now 8192).
+- Waiting on Saanvi: 2b + 7b (`eval/review_sheet.md`).
+- Spent on Day 3: ~$1.70.
+- Day 4 model comparison (done early, 2026-11-05): 6 models + glm-5p3 on all 32 tune questions, prompt v1,
+  `results/model_comparison_20261105-1639.md` (~$2.25). 32/32: deepseek-v4p1-flash, glm-5p3, qwen3p8-max;
+  31/32: glm-5p3-flash, kimi-k3 (both missed the x_029 restatement); minimax-m3 29; gpt-oss-120b 24.
+  Top three tie (ceiling effect) -> tie-break on reliability/latency/cost. Recommended: keep glm-5p3 (pending Saanvi).
 
 ## Extra question mix (~30)
 

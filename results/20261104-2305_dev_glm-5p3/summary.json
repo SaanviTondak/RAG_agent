@@ -1,0 +1,13 @@
+{
+  "run_id": "20261104-2305_dev_glm-5p3",
+  "set": "dev",
+  "ids": null,
+  "model": "accounts/fireworks/models/glm-5p3",
+  "judge": "accounts/fireworks/models/deepseek-v4p1-flash",
+  "runs": 1,
+  "rerank": true,
+  "fact_split_usd": 0.0,
+  "graded_at": "2026-11-05 15:06",
+  "n": 10,
+  "passed": 10
+}

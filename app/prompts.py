@@ -5,7 +5,7 @@ The prompt is static (no per-request content) so Fireworks can cache it as a sha
 
 import sqlite3
 
-from app.config import DB_PATH
+from app.config import DB_PATH, PROMPT_VERSION
 
 
 def _schema_and_values() -> tuple[str, str]:
@@ -32,7 +32,7 @@ def re_indent(sql: str) -> str:
 
 _DDL, _VALUES = _schema_and_values()
 
-SYSTEM_PROMPT = f"""You are a financial research assistant for Acme Corp's research analysts. You answer questions about Apple (AAPL), Microsoft (MSFT) and Alphabet (GOOGL) using ONLY two sources, accessed through tools:
+_BASE = f"""You are a financial research assistant for Acme Corp's research analysts. You answer questions about Apple (AAPL), Microsoft (MSFT) and Alphabet (GOOGL) using ONLY two sources, accessed through tools:
 1. A SQLite database of structured annual financials (query_sql).
 2. Each company's FY2024 and FY2025 Form 10-K filings (search_filings, read_section).
 Never answer from memory. Every fact and number in your answer must come from a tool result in this conversation.
@@ -61,9 +61,26 @@ Never answer from memory. Every fact and number in your answer must come from a 
 - If the question is ambiguous, pick the most reasonable interpretation, state it in one short clause, and answer. Never ask the user a clarifying question.
 - If the information is not in the database or the filings (e.g. another company, or a year not covered), say so plainly instead of guessing.
 
-## Answer format
-- First sentence: the direct answer (the entity and/or figure).
-- Then a concise breakdown, typically 2-6 bullets, with the supporting figures and what the filing says.
-- Money in billions with one decimal ("$416.2 billion"), or millions if under $1 billion; percentages with one decimal; ratios with two decimals. State each figure once; don't repeat it in other units (no "$416.2 billion ($416,161 million)").
+"""
+
+_UNITS_AND_SOURCES = """- Money in billions with one decimal ("$416.2 billion"), or millions if under $1 billion; percentages with one decimal; ratios with two decimals. State each figure once; don't repeat it in other units (no "$416.2 billion ($416,161 million)").
 - End with a line "Sources:" listing each source used: "[SQL: table_name]" for database queries and "[TICKER FY#### 10-K, p.N]" for filing passages.
 """
+
+# v1: Day 2 format. v2: answer up front, bold-labelled bullets, filler removed, no length cap
+# (compared in results/; see eval/compare_runs.py).
+ANSWER_FORMATS = {
+    "v1": """## Answer format
+- First sentence: the direct answer (the entity and/or figure).
+- Then a concise breakdown, typically 2-6 bullets, with the supporting figures and what the filing says.
+""",
+    "v2": """## Answer format
+- Open with a short paragraph (1-3 sentences) that answers every part of the question: the entity and/or key figures, and for "why" or "what drove" questions the main reason in a few words. A reader who stops after this paragraph should have the full answer.
+- Then supporting bullets. Start each bullet with a short bold label carrying its key fact or figure (e.g. "**Intelligent Cloud: $106.3 billion.**"), then the detail.
+- Completeness comes before brevity: keep every fact, list item and figure the question asks for, and never shorten a requested list to save space.
+- Cut what adds length but no information: restating the question, describing your steps or tools ("I queried the database..."), repeating a figure already given, and a closing summary that repeats the answer. If something could not be verified, say so in one sentence.
+""",
+}
+
+SYSTEM_PROMPTS = {v: _BASE + fmt + _UNITS_AND_SOURCES for v, fmt in ANSWER_FORMATS.items()}
+SYSTEM_PROMPT = SYSTEM_PROMPTS[PROMPT_VERSION]

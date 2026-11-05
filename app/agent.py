@@ -18,9 +18,9 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
 import app.retrieval
-from app.config import CHAT_MODEL, MAX_TOKENS, MAX_TOOL_CALLS, MAX_TURNS, SEED, TEMPERATURE, TRACE_DIR
+from app.config import CHAT_MODEL, MAX_TOKENS, MAX_TOOL_CALLS, MAX_TURNS, PROMPT_VERSION, SEED, TEMPERATURE, TRACE_DIR
 from app.llm import cached_tokens, chat, cost_usd
-from app.prompts import SYSTEM_PROMPT
+from app.prompts import SYSTEM_PROMPTS
 from app.tools import TOOL_SCHEMAS, run_tool
 
 COMPANY_RES = {
@@ -90,12 +90,12 @@ def _record_evidence(meta: dict, evidence: dict, sources: dict) -> None:
 
 
 def run(question: str, history: list[dict] | None = None, model: str = CHAT_MODEL, rerank: bool | None = None,
-        on_step=None) -> dict:
+        on_step=None, prompt: str = PROMPT_VERSION) -> dict:
     """Answer one question. `history` is prior chat turns ({role, content}) for UI follow-ups."""
     if rerank is not None:
         app.retrieval.rerank_enabled = rerank
     t0 = time.time()
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}, *(history or []),
+    messages = [{"role": "system", "content": SYSTEM_PROMPTS[prompt]}, *(history or []),
                 {"role": "user", "content": question + hints(question)}]
     trace, sources, nudges = [], {}, set()
     evidence = {"sql": False, "filings": False, "table": False}
@@ -161,7 +161,8 @@ def run(question: str, history: list[dict] | None = None, model: str = CHAT_MODE
     usage["cost_usd"] = round(cost_usd(model, usage["prompt_tokens"], usage["completion_tokens"],
                                        usage["cached_tokens"]), 6)
     result = {"question": question, "answer": answer, "sources": list(sources.values()), "trace": trace,
-              "usage": {**usage, "latency_ms": int((time.time() - t0) * 1000)}, "model": model}
+              "usage": {**usage, "latency_ms": int((time.time() - t0) * 1000)}, "model": model,
+              "prompt": prompt}
     _save_trace(result)
     return result
 

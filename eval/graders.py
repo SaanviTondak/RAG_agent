@@ -73,6 +73,18 @@ def first_sentence(answer: str) -> str:
     return re.split(r"(?<=[.!?])\s", text, maxsplit=1)[0].replace("§", ".")
 
 
+def lead(answer: str) -> str:
+    """The opening paragraph: text before the first blank line, bullet, heading or table."""
+    out = []
+    for line in body(answer).strip().splitlines():
+        if not line.strip() or re.match(r"\s*([-*+]\s|#|\||\d+\.\s)", line):  # "**Bold** text" is not a bullet
+            if out:
+                break
+            continue
+        out.append(line.strip())
+    return " ".join(out)
+
+
 def fuzzy_numeric(answer: str, gold: float) -> dict:
     nums = [n for n in parse_numbers(body(answer)) if not n["is_year"]]
     hit = next((n for n in nums if number_matches(n, gold)), None)
@@ -97,11 +109,12 @@ def _add_usage(a: dict | None, b: dict) -> dict:
 
 
 def judge_json(model: str, system: str, user: str) -> tuple[dict, dict]:
-    """One JSON-mode judge call (retried once if the JSON doesn't parse). Returns (object, usage)."""
+    """One JSON-mode judge call (retried once if the JSON doesn't parse). Returns (object, usage).
+    max_tokens is high because deepseek reasons first; at 4096 it sometimes ran out mid-JSON."""
     usage = None
     for _ in range(2):
         resp = chat(model=model, messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-                    temperature=0.0, seed=7, max_tokens=4096, response_format={"type": "json_object"})
+                    temperature=0.0, seed=7, max_tokens=8192, response_format={"type": "json_object"})
         usage = _add_usage(usage, _usage(model, resp))
         text = re.sub(r"<think>.*?</think>", "", resp.choices[0].message.content or "", flags=re.S)
         m = re.search(r"\{.*\}", text, re.S)
@@ -154,9 +167,11 @@ def llm_judge(question: str, answer: str, facts: list[str], model: str) -> dict:
 
 
 ENTITY_SYSTEM = f"""You read an answer from a financial research assistant and report which company or companies it
-gives as its answer to the question. Ignore companies that are only mentioned for comparison or context.
-Use tickers: {", ".join(f"{t} ({n})" for t, n in TICKERS.items())}. If the answer ranks them, list them in the
-answer's order. Return JSON: {{"entities": ["TICKER", ...]}}"""
+gives as its answer to the question. Ignore companies that are only mentioned for comparison or context:
+for "which company has the highest X", return only the company the answer says is highest, even if the answer
+also lists the others with their figures. Only when the question itself asks for several companies or a ranking
+(e.g. "the top two", "rank the companies") return all of them, in the answer's order.
+Use tickers: {", ".join(f"{t} ({n})" for t, n in TICKERS.items())}. Return JSON: {{"entities": ["TICKER", ...]}}"""
 
 ENTITY_RES = {"AAPL": re.compile(r"\b(apple|aapl)\b", re.I), "MSFT": re.compile(r"\b(microsoft|msft)\b", re.I),
               "GOOGL": re.compile(r"\b(alphabet|google|googl|goog)\b", re.I)}
@@ -299,6 +314,26 @@ def grounding_check(result: dict) -> dict:
     return {"n_checked": checked, "ungrounded": ungrounded, "ok": not ungrounded}
 
 
+# ---------------------------------------------------------------- does the opening paragraph alone answer it?
+
+def lead_check(q: dict, answer: str, judge_model: str, facts: dict[str, list[str]]) -> dict:
+    """Grade only the opening paragraph. Entity questions use the string check here (no extra judge call)."""
+    text, method = lead(answer), q["evaluation"]
+    if method == "fuzzy_numeric":
+        g = fuzzy_numeric(text, q["gold_answer_numeric"])
+    elif method == "exact_match_entity":
+        named, gold = entities_in(text), q["gold_entities"]
+        ok = named[: len(gold)] == gold if q.get("ordered") else set(gold) <= set(named)
+        if q.get("gold_answer_numeric") is not None:
+            ok = ok and fuzzy_numeric(text, q["gold_answer_numeric"])["pass"]
+        g = {"pass": ok, "score": float(ok), "judge_usage": None}
+    elif method == "llm_judge":
+        g = llm_judge(q["question"], text, facts[q["id"]], judge_model)
+    else:
+        g = out_of_scope(q["question"], text, judge_model)
+    return {"pass": g["pass"], "score": g["score"], "words": len(text.split()), "judge_usage": g["judge_usage"]}
+
+
 # ---------------------------------------------------------------- dispatch
 
 def grade(q: dict, result: dict, judge_model: str, facts: dict[str, list[str]]) -> dict:
@@ -315,6 +350,7 @@ def grade(q: dict, result: dict, judge_model: str, facts: dict[str, list[str]]) 
         g = out_of_scope(q["question"], answer, judge_model)
     else:
         raise ValueError(f"unknown evaluation method {method!r} for {q['id']}")
-    return {**g, "routing": routing(result, q["required_modalities"]),
+    return {**g, "lead": lead_check(q, answer, judge_model, facts), "words": len(body(answer).split()),
+            "routing": routing(result, q["required_modalities"]),
             "recall": gold_page_recall(result, q.get("gold_pages") or []),
             "citations": citation_check(result), "grounding": grounding_check(result)}
