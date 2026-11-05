@@ -140,7 +140,11 @@ def _eval(node):
     raise ValueError("only numbers, + - * / **, parentheses, round/abs/min/max are allowed")
 
 
-def calculate(expressions: dict) -> tuple[str, dict]:
+def calculate(expressions: dict | str) -> tuple[str, dict]:
+    if isinstance(expressions, str):  # some models send the object JSON-encoded
+        expressions = json.loads(expressions)
+    if not isinstance(expressions, dict):
+        raise ValueError("expressions must be an object mapping names to expressions")
     results, lines = {}, []
     for name, expr in expressions.items():
         clean = re.sub(r"(?<=\d),(?=\d{3}\b)", "", str(expr))  # 281,724 -> 281724
@@ -163,7 +167,7 @@ def run_tool(name: str, raw_args: str) -> tuple[str, dict]:
     try:
         args = json.loads(raw_args or "{}")
         return TOOLS[name](**args)
-    except (json.JSONDecodeError, TypeError, ValueError) as e:
+    except Exception as e:  # noqa: BLE001 - any tool failure goes back to the model as text
         return f"Error calling {name}: {e}", {"type": "error"}
 
 

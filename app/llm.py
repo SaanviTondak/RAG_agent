@@ -6,7 +6,7 @@ import numpy as np
 import requests
 from openai import APIConnectionError, APIStatusError, OpenAI, RateLimitError
 
-from app.config import EMBED_MODEL, FIREWORKS_API_KEY, FIREWORKS_BASE_URL, RERANK_MODEL
+from app.config import EMBED_MODEL, FIREWORKS_API_KEY, FIREWORKS_BASE_URL, PRICES, RERANK_MODEL
 
 if not FIREWORKS_API_KEY:
     raise SystemExit("FIREWORKS_API_KEY is not set. Put it in .env or export it in your shell.")
@@ -14,6 +14,9 @@ if not FIREWORKS_API_KEY:
 client = OpenAI(api_key=FIREWORKS_API_KEY, base_url=FIREWORKS_BASE_URL, max_retries=0, timeout=120)
 
 RETRIES = 4
+
+#retries when Fireworks is rate-limited or has a temporary server error, 
+# with increasing waits, and fails immediately on mistakes like a bad request.
 
 
 def _retry(fn):
@@ -35,6 +38,17 @@ def _retry(fn):
 
 def chat(**kwargs):
     return _retry(lambda: client.chat.completions.create(**kwargs))
+
+
+def cached_tokens(usage) -> int:
+    details = getattr(usage, "prompt_tokens_details", None)
+    return (getattr(details, "cached_tokens", None) or 0) if details else 0
+
+
+def cost_usd(model: str, prompt_tokens: int, completion_tokens: int, cached: int = 0) -> float:
+    """LLM cost from token counts; unknown models are priced as 0 (and flagged by callers)."""
+    p_in, p_cached, p_out = PRICES.get(model.rsplit("/", 1)[-1], (0.0, 0.0, 0.0))
+    return ((prompt_tokens - cached) * p_in + cached * p_cached + completion_tokens * p_out) / 1e6
 
 
 def embed(texts: list[str], batch_size: int = 64) -> np.ndarray:

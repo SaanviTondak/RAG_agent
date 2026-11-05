@@ -1,0 +1,222 @@
+{
+  "q_006": {
+    "facts": [
+      "Apple disclosed reliance on single or limited sources for components as a supply chain risk factor.",
+      "Apple disclosed dependence on third-party manufacturers as a supply chain risk factor.",
+      "Apple disclosed supply chain disruptions from geopolitical tensions as a risk factor.",
+      "Apple disclosed supply chain disruptions from natural disasters as a risk factor.",
+      "Apple disclosed supply chain disruptions from health emergencies as a risk factor.",
+      "Apple disclosed component supply constraints affecting product availability as a risk factor.",
+      "Apple disclosed risks from concentration of manufacturing operations in specific regions as a supply chain risk factor."
+    ],
+    "reviewed": false,
+    "split_by": "kimi-k3"
+  },
+  "q_012": {
+    "facts": [
+      "Apple's Greater China revenue was $66.95 billion in FY2024",
+      "Apple's Greater China revenue was $64.38 billion in FY2025",
+      "Apple's Greater China revenue decreased from FY2024 to FY2025",
+      "The decline was approximately 3.8%",
+      "The FY2025 10-K states the decrease was primarily due to lower net sales of iPhone",
+      "The decrease was partially offset by higher net sales of Mac"
+    ],
+    "reviewed": false,
+    "split_by": "kimi-k3"
+  },
+  "q_014": {
+    "facts": [
+      "The FY2025 10-K has three segments.",
+      "One segment is Productivity and Business Processes.",
+      "Productivity and Business Processes revenue was $120.8B.",
+      "Productivity and Business Processes includes Microsoft 365 Commercial/Consumer.",
+      "Productivity and Business Processes includes LinkedIn.",
+      "Productivity and Business Processes includes Dynamics.",
+      "One segment is Intelligent Cloud.",
+      "Intelligent Cloud revenue was $106.3B.",
+      "Intelligent Cloud includes Azure.",
+      "Intelligent Cloud includes SQL Server.",
+      "Intelligent Cloud includes Windows Server.",
+      "Intelligent Cloud includes GitHub.",
+      "Intelligent Cloud includes enterprise services.",
+      "One segment is More Personal Computing.",
+      "More Personal Computing revenue was $54.6B.",
+      "More Personal Computing includes Windows.",
+      "More Personal Computing includes Devices.",
+      "More Personal Computing includes Gaming.",
+      "More Personal Computing includes Search/news advertising."
+    ],
+    "reviewed": false,
+    "split_by": "kimi-k3"
+  },
+  "q_017": {
+    "facts": [
+      "Google Services includes Google Search & other",
+      "Google Services includes YouTube ads",
+      "Google Services includes Google Network",
+      "Google Services includes Google subscriptions/platforms/devices",
+      "YouTube advertising revenue was $36.1 billion in FY2024",
+      "YouTube advertising revenue was $40.4 billion in FY2025",
+      "YouTube advertising revenue increased by approximately 11.7% between FY2024 and FY2025"
+    ],
+    "reviewed": false,
+    "split_by": "kimi-k3"
+  },
+  "q_022": {
+    "facts": [
+      "Alphabet had the largest absolute dollar increase in revenue among the three companies",
+      "Alphabet's revenue increased by approximately $52.8B, from $350.0B to $402.8B",
+      "Google Services grew by $37.8B, from $304.9B to $342.7B",
+      "Google Cloud grew by $15.5B, from $43.2B to $58.7B",
+      "Other Bets declined by $0.1B, from $1.6B to $1.5B",
+      "A hedging reconciliation of approximately -$0.3B accounts for the difference between the segment subtotal and consolidated revenue",
+      "Microsoft's revenue increased by $36.6B",
+      "Apple's revenue increased by $25.1B"
+    ],
+    "reviewed": false,
+    "split_by": "kimi-k3"
+  },
+  "q_025": {
+    "facts": [
+      "Services revenue grew 12.9% from FY2023 to FY2024 ($85.2B to $96.2B)",
+      "Services revenue grew 13.5% from FY2024 to FY2025 ($96.2B to $109.2B)",
+      "iPhone revenue grew 0.3% from FY2023 to FY2024",
+      "iPhone revenue grew 4.2% from FY2024 to FY2025",
+      "Services is consistently growing much faster than iPhone",
+      "The 10-K highlights Services as a key growth driver",
+      "The 10-K says Services has higher margins",
+      "The 10-K says Services has recurring revenue from subscriptions",
+      "The 10-K mentions App Store as part of Services",
+      "The 10-K mentions Apple Music as part of Services",
+      "The 10-K mentions iCloud as part of Services",
+      "The 10-K mentions advertising as part of Services"
+    ],
+    "reviewed": false,
+    "split_by": "kimi-k3"
+  },
+  "x_013": {
+    "facts": [
+      "Microsoft's revenue was the most concentrated in a single region",
+      "Microsoft's largest geographic region was the United States",
+      "The United States accounted for 51.3% of Microsoft's FY2025 revenue",
+      "Alphabet's largest geographic region was the United States",
+      "The United States accounted for 48.2% of Alphabet's revenue",
+      "Apple's largest geographic region was the Americas",
+      "The Americas accounted for 42.9% of Apple's revenue"
+    ],
+    "reviewed": false,
+    "split_by": "kimi-k3"
+  },
+  "x_014": {
+    "facts": [
+      "Microsoft's FY2025 10-K discloses intense and rapidly evolving competition in AI, including from open AI models.",
+      "Microsoft's FY2025 10-K discloses significant costs to build AI and cloud infrastructure that reduce operating margins.",
+      "Microsoft's FY2025 10-K discloses flawed algorithms, biased or inaccurate datasets, and harmful or inaccurate AI-generated content that could cause reputational or competitive harm or legal liability.",
+      "Microsoft's FY2025 10-K discloses misuse of its AI systems and services by users.",
+      "Microsoft's FY2025 10-K discloses emerging AI regulation such as the EU AI Act that could increase costs or restrict opportunity.",
+      "Microsoft's FY2025 10-K discloses intellectual property claims arising from AI training and output."
+    ],
+    "reviewed": false,
+    "split_by": "kimi-k3"
+  },
+  "x_020": {
+    "facts": [
+      "Intelligent Cloud revenue rose from fiscal year 2024 to fiscal year 2025.",
+      "Intelligent Cloud revenue was $87.5 billion in fiscal year 2024.",
+      "Intelligent Cloud revenue was $106.3 billion in fiscal year 2025.",
+      "The increase was about $18.8 billion.",
+      "The increase was 21.5%.",
+      "The FY2025 10-K attributes the growth to Azure.",
+      "Server products and cloud services revenue increased 23%.",
+      "Azure and other cloud services revenue growth was 34%."
+    ],
+    "reviewed": false,
+    "split_by": "kimi-k3"
+  },
+  "x_021": {
+    "facts": [
+      "Google Cloud revenue was $43.2 billion in fiscal year 2024",
+      "Google Cloud revenue was $58.7 billion in fiscal year 2025",
+      "Google Cloud revenue increased by $15.5 billion between fiscal year 2024 and fiscal year 2025",
+      "Google Cloud revenue increased by about 35.8% between fiscal year 2024 and fiscal year 2025",
+      "The FY2025 10-K says the increase was primarily driven by growth in Google Cloud Platform",
+      "The growth in Google Cloud Platform was largely from infrastructure and platform services"
+    ],
+    "reviewed": false,
+    "split_by": "kimi-k3"
+  },
+  "x_022": {
+    "facts": [
+      "Wearables, Home and Accessories revenue decreased from fiscal year 2024 to fiscal year 2025.",
+      "Wearables, Home and Accessories revenue was $37.0 billion in fiscal year 2024.",
+      "Wearables, Home and Accessories revenue was $35.7 billion in fiscal year 2025.",
+      "The revenue decrease was about $1.3 billion.",
+      "The revenue decrease was 3.6%.",
+      "The FY2025 10-K attributes the decrease primarily to lower net sales of Accessories.",
+      "The FY2025 10-K attributes the decrease primarily to lower net sales of Wearables."
+    ],
+    "reviewed": false,
+    "split_by": "kimi-k3"
+  },
+  "x_025": {
+    "facts": [
+      "Apple's reportable segments are geographic",
+      "Americas generated $178.4 billion in revenue",
+      "Europe generated $111.0 billion in revenue",
+      "Greater China generated $64.4 billion in revenue",
+      "Japan generated $28.7 billion in revenue",
+      "Rest of Asia Pacific generated $33.7 billion in revenue"
+    ],
+    "reviewed": false,
+    "split_by": "kimi-k3"
+  },
+  "x_029": {
+    "facts": [
+      "Microsoft's Intelligent Cloud revenue in fiscal year 2024 was $87.5 billion under the segment definitions restated in the FY2025 10-K.",
+      "The FY2024 10-K originally reported $105.4 billion for Intelligent Cloud.",
+      "The $105.4 billion figure was reported under the segment structure in place before the August 2024 reorganization."
+    ],
+    "reviewed": false,
+    "split_by": "kimi-k3"
+  },
+  "x_018": {
+    "facts": [
+      "Alphabet generated more than 70% of total revenues from online advertising in 2025.",
+      "Reduced advertiser spending is a risk, and advertiser spending tends to track economic conditions.",
+      "Advertisers and partners can terminate contracts at any time.",
+      "AI is reshaping the advertising industry and Alphabet may not adapt to new ad formats effectively.",
+      "Changes to Alphabet's own or other companies' advertising and data-privacy practices are a risk.",
+      "Technologies that block ads or make personalized ads more difficult are a risk."
+    ],
+    "reviewed": false,
+    "split_by": "kimi-k3"
+  },
+  "x_023": {
+    "facts": [
+      "More Personal Computing revenue increased from $50.8 billion to $54.6 billion",
+      "The increase was about $3.8 billion",
+      "The increase was 7.5%",
+      "The FY2025 10-K attributes the increase to Gaming (Xbox content and services)",
+      "Gaming was helped by the Activision Blizzard acquisition",
+      "Gaming was helped by Xbox Game Pass",
+      "The FY2025 10-K attributes the increase to Search and news advertising",
+      "Search and news advertising was up 13%",
+      "Windows and Devices was up 2%"
+    ],
+    "reviewed": false,
+    "split_by": "kimi-k3"
+  },
+  "x_024": {
+    "facts": [
+      "Japan revenue was $25.1 billion in FY2024",
+      "Japan revenue was $28.7 billion in FY2025",
+      "The increase was about $3.7 billion",
+      "The increase was 14.6%",
+      "The FY2025 10-K says the increase was primarily due to higher net sales of iPhone",
+      "The FY2025 10-K says the increase was primarily due to higher net sales of Services",
+      "The FY2025 10-K says the increase was primarily due to higher net sales of iPad"
+    ],
+    "reviewed": false,
+    "split_by": "kimi-k3"
+  }
+}

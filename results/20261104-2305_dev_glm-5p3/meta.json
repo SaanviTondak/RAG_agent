@@ -1,0 +1,8 @@
+{
+  "set": "dev",
+  "ids": null,
+  "model": "accounts/fireworks/models/glm-5p3",
+  "judge": "accounts/fireworks/models/kimi-k3",
+  "runs": 1,
+  "rerank": true
+}

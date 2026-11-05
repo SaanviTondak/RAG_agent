@@ -1,0 +1,10 @@
+{
+  "_note": "Our additions to the official dev answer key (questions/dev_questions_with_answers.json is left untouched). gold_pages are PDF page numbers, located by searching the index and checked against the PDF.",
+  "q_006": {"gold_pages": [{"doc": "AAPL_FY2025_10-K", "page": 10}, {"doc": "AAPL_FY2025_10-K", "page": 11}]},
+  "q_011": {"gold_entities": ["GOOGL"]},
+  "q_012": {"gold_pages": [{"doc": "AAPL_FY2025_10-K", "page": 24}]},
+  "q_014": {"gold_pages": [{"doc": "MSFT_FY2025_10-K", "page": 5}, {"doc": "MSFT_FY2025_10-K", "page": 37}]},
+  "q_017": {"gold_pages": [{"doc": "GOOGL_FY2025_10-K", "page": 31}, {"doc": "GOOGL_FY2025_10-K", "page": 36}]},
+  "q_018": {"gold_entities": ["GOOGL"]},
+  "q_025": {"gold_pages": [{"doc": "AAPL_FY2025_10-K", "page": 4}, {"doc": "AAPL_FY2025_10-K", "page": 25}]}
+}

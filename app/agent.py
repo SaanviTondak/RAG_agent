@@ -19,7 +19,7 @@ from datetime import datetime
 
 import app.retrieval
 from app.config import CHAT_MODEL, MAX_TOKENS, MAX_TOOL_CALLS, MAX_TURNS, SEED, TEMPERATURE, TRACE_DIR
-from app.llm import chat
+from app.llm import cached_tokens, chat, cost_usd
 from app.prompts import SYSTEM_PROMPT
 from app.tools import TOOL_SCHEMAS, run_tool
 
@@ -99,7 +99,7 @@ def run(question: str, history: list[dict] | None = None, model: str = CHAT_MODE
                 {"role": "user", "content": question + hints(question)}]
     trace, sources, nudges = [], {}, set()
     evidence = {"sql": False, "filings": False, "table": False}
-    usage = {"prompt_tokens": 0, "completion_tokens": 0, "llm_calls": 0, "tool_calls": 0}
+    usage = {"prompt_tokens": 0, "cached_tokens": 0, "completion_tokens": 0, "llm_calls": 0, "tool_calls": 0}
     answer = None
 
     def emit(step: dict) -> None:
@@ -114,6 +114,7 @@ def run(question: str, history: list[dict] | None = None, model: str = CHAT_MODE
         usage["llm_calls"] += 1
         if resp.usage:
             usage["prompt_tokens"] += resp.usage.prompt_tokens
+            usage["cached_tokens"] += cached_tokens(resp.usage)
             usage["completion_tokens"] += resp.usage.completion_tokens
         emit({"type": "llm", "ms": int((time.time() - t) * 1000), "finish": resp.choices[0].finish_reason})
         return resp.choices[0].message
@@ -137,7 +138,7 @@ def run(question: str, history: list[dict] | None = None, model: str = CHAT_MODE
                 _record_evidence(meta, evidence, sources)
                 messages.append({"role": "tool", "tool_call_id": tc.id, "content": text})
                 emit({"type": "tool", "tool": tc.function.name, "args": tc.function.arguments, "ms": ms,
-                      "result": text[:2000], "meta": {k: v for k, v in meta.items() if k != "hits"},
+                      "result": text, "meta": {k: v for k, v in meta.items() if k != "hits"},
                       "citations": [h["citation"] for h in meta.get("hits", [])]})
             for tc in skipped:
                 messages.append({"role": "tool", "tool_call_id": tc.id, "content": "Skipped: tool budget reached."})
@@ -157,6 +158,8 @@ def run(question: str, history: list[dict] | None = None, model: str = CHAT_MODE
         emit({"type": "fallback"})
         answer = THINK_RE.sub("", call_llm("none").content or "").strip() or "No answer could be produced."
 
+    usage["cost_usd"] = round(cost_usd(model, usage["prompt_tokens"], usage["completion_tokens"],
+                                       usage["cached_tokens"]), 6)
     result = {"question": question, "answer": answer, "sources": list(sources.values()), "trace": trace,
               "usage": {**usage, "latency_ms": int((time.time() - t0) * 1000)}, "model": model}
     _save_trace(result)
@@ -186,7 +189,7 @@ def main() -> None:
     r = run(a.question, model=a.model, rerank=False if a.no_rerank else None, on_step=show)
     u = r["usage"]
     print(f"\n{r['answer']}\n\n[{u['latency_ms'] / 1000:.1f}s | {u['llm_calls']} LLM calls | {u['tool_calls']} tool calls | "
-          f"{u['prompt_tokens']} in / {u['completion_tokens']} out tokens]")
+          f"{u['prompt_tokens']} in / {u['completion_tokens']} out tokens | ${u['cost_usd']:.4f}]")
 
 
 if __name__ == "__main__":

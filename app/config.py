@@ -32,6 +32,17 @@ EMBED_QUERY_PREFIX = os.getenv(
     "Instruct: Given a question about a company's 10-K filing, retrieve passages that answer it\nQuery: ",
 )
 
+# Fireworks serverless prices, USD per 1M tokens: (input, cached input, output). From fireworks.ai/pricing, 2026-11-04.
+PRICES = {
+    "glm-5p3": (1.40, 0.26, 4.40),
+    "glm-5p3-flash": (0.15, 0.03, 0.50),
+    "kimi-k3": (3.00, 0.30, 15.00),
+    "deepseek-v4p1-flash": (0.30, 0.006, 1.20),
+    "qwen3p8-max": (2.00, 0.25, 6.00),
+    "gpt-oss-120b": (0.15, 0.015, 0.60),
+    "minimax-m3": (0.30, 0.06, 1.20),
+}
+
 TICKERS = {"AAPL": "Apple", "MSFT": "Microsoft", "GOOGL": "Alphabet"}
 
 # Retrieval
