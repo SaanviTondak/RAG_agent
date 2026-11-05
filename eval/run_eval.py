@@ -21,8 +21,8 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 
-from app import agent
-from app.config import CHAT_MODEL, JUDGE_MODEL, PRICES, PROMPT_VERSION, RERANK, ROOT
+from app import agent, baseline
+from app.config import CHAT_MODEL, GROUNDING_NUDGE, JUDGE_MODEL, PRICES, PROMPT_VERSION, RERANK, ROOT
 from app.llm import cost_usd
 from eval.graders import grade, split_facts
 
@@ -76,7 +76,7 @@ def read_jsonl(path: Path) -> list[dict]:
 
 
 def run_answers(questions, run_dir: Path, model: str, rerank: bool, prompt: str, runs: int, max_usd: float,
-                reuse: list[str]) -> None:
+                reuse: list[str], system: str = "agent", gnudge: bool = False) -> None:
     path = run_dir / "answers.jsonl"
     done = {(a["id"], a["run"]) for a in read_jsonl(path)}
     by_id = {q["id"]: q for q in questions}
@@ -84,14 +84,15 @@ def run_answers(questions, run_dir: Path, model: str, rerank: bool, prompt: str,
         for rid in reuse:
             for a in read_jsonl(RESULTS_DIR / rid / "answers.jsonl"):
                 if a["id"] in by_id and (a["id"], a["run"]) not in done and a["run"] < runs \
-                        and a["model"] == model and a["rerank"] == rerank and a.get("prompt", "v1") == prompt:
+                        and a["model"] == model and a["rerank"] == rerank and a.get("prompt", "v1") == prompt \
+                        and a.get("system", "agent") == system and a.get("grounding_nudge", False) == gnudge:
                     f.write(json.dumps(a) + "\n")
                     done.add((a["id"], a["run"]))
     jobs = [(q, r) for r in range(runs) for q in questions if (q["id"], r) not in done]
     if not jobs:
         return
     est = len(jobs) * cost_usd(model, *EST_TOKENS)
-    print(f"Running {len(jobs)} answers with {short(model)} (rerank={rerank}, prompt {prompt}); "
+    print(f"Running {len(jobs)} answers with {short(model)} ({system}, rerank={rerank}, prompt {prompt}); "
           f"estimated ${est:.2f}, cap ${max_usd:.2f}")
     if est > max_usd:
         raise SystemExit("Estimated cost exceeds --max-usd; raise the cap or narrow --ids.")
@@ -103,12 +104,16 @@ def run_answers(questions, run_dir: Path, model: str, rerank: bool, prompt: str,
         if spent[0] >= max_usd:
             return None
         try:
-            result = agent.run(q["question"], model=model, rerank=rerank, prompt=prompt)
+            if system == "agent":
+                result = agent.run(q["question"], model=model, rerank=rerank, prompt=prompt, grounding_nudge=gnudge)
+            else:
+                result = baseline.run(q["question"], system, model=model, prompt=prompt)
         except Exception as e:  # noqa: BLE001 - not saved, so --resume retries it
             print(f"  {q['id']} run {r}: FAILED ({type(e).__name__}: {e})")
             return None
         result.pop("question")
-        rec = {"id": q["id"], "run": r, "model": model, "rerank": rerank, "prompt": prompt, "result": result}
+        rec = {"id": q["id"], "run": r, "model": model, "rerank": rerank, "prompt": prompt, "system": system,
+               "grounding_nudge": gnudge, "result": result}
         u = result["usage"]
         with lock:
             spent[0] += u["cost_usd"]
@@ -208,7 +213,7 @@ def scorecard(questions, run_dir: Path, scores: list[dict], meta: dict, compare:
     full_cov = [s["score"] for q, s, _ in rows if s.get("lead") and q["evaluation"] == "llm_judge"]
 
     md = [f"# Scorecard: {run_dir.name}", "",
-          f"- Answer model: `{short(meta['model'])}` | prompt: {meta.get('prompt', 'v1')} | judge: `{short(meta['judge'])}` | "
+          f"- System: {meta.get('system', 'agent')}{' + grounding nudge' if meta.get('grounding_nudge') else ''} | answer model: `{short(meta['model'])}` | prompt: {meta.get('prompt', 'v1')} | judge: `{short(meta['judge'])}` | "
           f"rerank: {meta['rerank']} | "
           f"set: {meta['set']} | runs per question: {meta['runs']} | graded {meta['graded_at']}", "",
           "## Headline", "",
@@ -277,6 +282,10 @@ def main() -> None:
     ap.add_argument("--runs", type=int, default=1)
     ap.add_argument("--no-rerank", action="store_true")
     ap.add_argument("--prompt", default=PROMPT_VERSION, help="answer-format version in app/prompts.py")
+    ap.add_argument("--system", choices=["agent", "rag", "pipeline"], default="agent",
+                    help="the agent, or a non-agentic baseline from app/baseline.py")
+    ap.add_argument("--grounding-nudge", action=argparse.BooleanOptionalAction, default=GROUNDING_NUDGE,
+                    help="agent: send the model back once if a percentage in its draft is in no tool result")
     ap.add_argument("--max-usd", type=float, default=1.00, help="stop running the agent once this much is spent")
     ap.add_argument("--reuse", default="", help="comma-separated run ids whose matching answers are copied")
     ap.add_argument("--resume", help="continue an existing run directory")
@@ -297,12 +306,15 @@ def main() -> None:
             raise SystemExit("The holdout set is run once, on the final config. Pass --final to confirm.")
         if short(a.model) not in PRICES:
             print(f"warning: no price for {short(a.model)}; costs will show as $0")
-        run_id = f"{datetime.now():%Y%m%d-%H%M}_{a.set}_{short(a.model)}_{a.prompt}" + ("_norerank" if a.no_rerank else "") \
+        run_id = f"{datetime.now():%Y%m%d-%H%M}_{a.set}_{short(a.model)}_{a.prompt}" \
+            + ("" if a.system == "agent" else f"_{a.system}") + ("_gn" if a.grounding_nudge else "") \
+            + ("_norerank" if a.no_rerank else "") \
             + (f"_{a.name}" if a.name else "")
         run_dir = RESULTS_DIR / run_id
         run_dir.mkdir(parents=True, exist_ok=True)
         meta = {"set": a.set, "ids": a.ids, "model": a.model, "judge": a.judge, "runs": a.runs,
-                "rerank": RERANK and not a.no_rerank, "prompt": a.prompt}
+                "rerank": RERANK and not a.no_rerank, "prompt": a.prompt, "system": a.system,
+                "grounding_nudge": a.grounding_nudge}
         (run_dir / "meta.json").write_text(json.dumps(meta, indent=2) + "\n")
 
     questions = load_set(meta["set"])
@@ -311,7 +323,7 @@ def main() -> None:
         questions = [q for q in questions if q["id"] in wanted]
     if not a.regrade:
         run_answers(questions, run_dir, meta["model"], meta["rerank"], meta.get("prompt", "v1"), meta["runs"], a.max_usd,
-                    [r for r in a.reuse.split(",") if r])
+                    [r for r in a.reuse.split(",") if r], meta.get("system", "agent"), meta.get("grounding_nudge", False))
     if a.no_grade:
         print(f"Answers saved in {run_dir / 'answers.jsonl'}; grade later with --regrade {run_dir.name}")
         return

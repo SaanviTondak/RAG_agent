@@ -1,0 +1,15 @@
+{
+  "run_id": "20261105-1740_tune_glm-5p3_v1_pipeline",
+  "set": "tune",
+  "ids": "q_001,q_006,q_008,q_011,q_012,q_014,q_017,q_018,q_022,q_025,x_033,x_034,x_035,x_036,x_037,x_038,x_039,x_040",
+  "model": "accounts/fireworks/models/glm-5p3",
+  "judge": "accounts/fireworks/models/deepseek-v4p1-flash",
+  "runs": 1,
+  "rerank": true,
+  "prompt": "v1",
+  "system": "pipeline",
+  "fact_split_usd": 0.0,
+  "graded_at": "2026-11-05 17:43",
+  "n": 18,
+  "passed": 13
+}

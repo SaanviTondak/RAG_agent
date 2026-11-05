@@ -1,0 +1,16 @@
+{
+  "run_id": "20261105-1741_tune_glm-5p3_v3_gn",
+  "set": "tune",
+  "ids": null,
+  "model": "accounts/fireworks/models/glm-5p3",
+  "judge": "accounts/fireworks/models/deepseek-v4p1-flash",
+  "runs": 1,
+  "rerank": true,
+  "prompt": "v3",
+  "system": "agent",
+  "grounding_nudge": true,
+  "fact_split_usd": 0.0,
+  "graded_at": "2026-11-05 17:48",
+  "n": 40,
+  "passed": 39
+}

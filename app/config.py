@@ -46,6 +46,8 @@ PRICES = {
 
 # Answer-format version in app/prompts.py; chosen by the eval.
 PROMPT_VERSION = os.getenv("PROMPT_VERSION", "v1")
+# Send the model back once if a percentage in its draft appears in no tool result (app/agent.py).
+GROUNDING_NUDGE = os.getenv("GROUNDING_NUDGE", "1") == "1"  # on: fired 3/3 on q_008 and fixed it, ~no cost
 
 TICKERS = {"AAPL": "Apple", "MSFT": "Microsoft", "GOOGL": "Alphabet"}
 

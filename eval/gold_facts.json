@@ -9,7 +9,7 @@
       "Apple disclosed component supply constraints affecting product availability as a risk factor.",
       "Apple disclosed risks from concentration of manufacturing operations in specific regions as a supply chain risk factor."
     ],
-    "reviewed": false,
+    "reviewed": true,
     "split_by": "kimi-k3"
   },
   "q_012": {
@@ -21,7 +21,7 @@
       "The FY2025 10-K states the decrease was primarily due to lower net sales of iPhone",
       "The decrease was partially offset by higher net sales of Mac"
     ],
-    "reviewed": false,
+    "reviewed": true,
     "split_by": "kimi-k3"
   },
   "q_014": {
@@ -46,7 +46,7 @@
       "More Personal Computing includes Gaming.",
       "More Personal Computing includes Search/news advertising."
     ],
-    "reviewed": false,
+    "reviewed": true,
     "split_by": "kimi-k3"
   },
   "q_017": {
@@ -59,7 +59,7 @@
       "YouTube advertising revenue was $40.4 billion in FY2025",
       "YouTube advertising revenue increased by approximately 11.7% between FY2024 and FY2025"
     ],
-    "reviewed": false,
+    "reviewed": true,
     "split_by": "kimi-k3"
   },
   "q_022": {
@@ -73,7 +73,7 @@
       "Microsoft's revenue increased by $36.6B",
       "Apple's revenue increased by $25.1B"
     ],
-    "reviewed": false,
+    "reviewed": true,
     "split_by": "kimi-k3"
   },
   "q_025": {
@@ -91,7 +91,7 @@
       "The 10-K mentions iCloud as part of Services",
       "The 10-K mentions advertising as part of Services"
     ],
-    "reviewed": false,
+    "reviewed": true,
     "split_by": "kimi-k3"
   },
   "x_013": {
@@ -104,7 +104,7 @@
       "Apple's largest geographic region was the Americas",
       "The Americas accounted for 42.9% of Apple's revenue"
     ],
-    "reviewed": false,
+    "reviewed": true,
     "split_by": "kimi-k3"
   },
   "x_014": {
@@ -116,7 +116,7 @@
       "Microsoft's FY2025 10-K discloses emerging AI regulation such as the EU AI Act that could increase costs or restrict opportunity.",
       "Microsoft's FY2025 10-K discloses intellectual property claims arising from AI training and output."
     ],
-    "reviewed": false,
+    "reviewed": true,
     "split_by": "kimi-k3"
   },
   "x_020": {
@@ -130,7 +130,7 @@
       "Server products and cloud services revenue increased 23%.",
       "Azure and other cloud services revenue growth was 34%."
     ],
-    "reviewed": false,
+    "reviewed": true,
     "split_by": "kimi-k3"
   },
   "x_021": {
@@ -142,7 +142,7 @@
       "The FY2025 10-K says the increase was primarily driven by growth in Google Cloud Platform",
       "The growth in Google Cloud Platform was largely from infrastructure and platform services"
     ],
-    "reviewed": false,
+    "reviewed": true,
     "split_by": "kimi-k3"
   },
   "x_022": {
@@ -155,7 +155,7 @@
       "The FY2025 10-K attributes the decrease primarily to lower net sales of Accessories.",
       "The FY2025 10-K attributes the decrease primarily to lower net sales of Wearables."
     ],
-    "reviewed": false,
+    "reviewed": true,
     "split_by": "kimi-k3"
   },
   "x_025": {
@@ -167,7 +167,7 @@
       "Japan generated $28.7 billion in revenue",
       "Rest of Asia Pacific generated $33.7 billion in revenue"
     ],
-    "reviewed": false,
+    "reviewed": true,
     "split_by": "kimi-k3"
   },
   "x_029": {
@@ -176,7 +176,7 @@
       "The FY2024 10-K originally reported $105.4 billion for Intelligent Cloud.",
       "The $105.4 billion figure was reported under the segment structure in place before the August 2024 reorganization."
     ],
-    "reviewed": false,
+    "reviewed": true,
     "split_by": "kimi-k3"
   },
   "x_018": {
@@ -188,7 +188,7 @@
       "Changes to Alphabet's own or other companies' advertising and data-privacy practices are a risk.",
       "Technologies that block ads or make personalized ads more difficult are a risk."
     ],
-    "reviewed": false,
+    "reviewed": true,
     "split_by": "kimi-k3"
   },
   "x_023": {
@@ -203,7 +203,7 @@
       "Search and news advertising was up 13%",
       "Windows and Devices was up 2%"
     ],
-    "reviewed": false,
+    "reviewed": true,
     "split_by": "kimi-k3"
   },
   "x_024": {
@@ -216,7 +216,67 @@
       "The FY2025 10-K says the increase was primarily due to higher net sales of Services",
       "The FY2025 10-K says the increase was primarily due to higher net sales of iPad"
     ],
-    "reviewed": false,
+    "reviewed": true,
     "split_by": "kimi-k3"
+  },
+  "x_035": {
+    "facts": [
+      "Apple's net income was $97.0 billion in FY2023",
+      "Apple's net income was $93.7 billion in FY2024",
+      "Net income decreased by about $3.3 billion (about 3.4%)",
+      "Revenue grew (about 2.0%) in FY2024",
+      "The FY2024 10-K cites a one-time income tax charge of $10.2 billion, net",
+      "The charge related to the European Commission's State Aid Decision",
+      "The effective tax rate rose to 24.1% from 14.7%"
+    ],
+    "reviewed": false,
+    "split_by": "claude (hand-written)"
+  },
+  "x_036": {
+    "facts": [
+      "Microsoft's operating income rose by $19.1 billion (about 17%)",
+      "Microsoft's operating income was $109.4 billion in FY2024 and $128.5 billion in FY2025",
+      "Microsoft's 10-K says the growth came from all (each) of its segments",
+      "Alphabet's operating income rose by $16.6 billion (about 14.8%)",
+      "Alphabet's operating income was $112.4 billion in FY2024 and $129.0 billion in FY2025",
+      "Alphabet's 10-K attributes the segment operating income gains mainly to higher revenues",
+      "Google Services operating income rose $18.1 billion",
+      "Google Cloud operating income rose $7.8 billion",
+      "A larger Other Bets loss (about $3.1 billion more) or higher Alphabet-level costs partly offset the gains"
+    ],
+    "reviewed": false,
+    "split_by": "claude (hand-written)"
+  },
+  "x_037": {
+    "facts": [
+      "Microsoft Cloud revenue includes Microsoft 365 Commercial cloud",
+      "Microsoft Cloud revenue includes Azure and other cloud services",
+      "Microsoft Cloud revenue includes the commercial portion of LinkedIn",
+      "Microsoft Cloud revenue includes Dynamics 365",
+      "Microsoft Cloud revenue was $168.9 billion in FY2025",
+      "Microsoft Cloud revenue was $137.7 billion in FY2024",
+      "Microsoft Cloud revenue was $111.6 billion in FY2023"
+    ],
+    "reviewed": false,
+    "split_by": "claude (hand-written)"
+  },
+  "x_038": {
+    "facts": [
+      "Apple spent more on share repurchases than Alphabet in FY2025",
+      "Apple's FY2025 repurchases were about $90.7 billion (cash flow statement) or $89.3 billion (Note 10); either figure counts",
+      "Alphabet's FY2025 repurchases were $45.4 billion"
+    ],
+    "reviewed": false,
+    "split_by": "claude (hand-written)"
+  },
+  "x_039": {
+    "facts": [
+      "Google Cloud was about 14.6% of Alphabet's FY2025 revenue",
+      "Google Cloud revenue was $58.7 billion in FY2025",
+      "Google Cloud was about 12.4% (12.3-12.4%) of Alphabet's FY2024 revenue",
+      "The share increased by about 2.2 percentage points"
+    ],
+    "reviewed": false,
+    "split_by": "claude (hand-written)"
   }
 }

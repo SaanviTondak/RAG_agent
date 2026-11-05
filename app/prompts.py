@@ -67,11 +67,15 @@ _UNITS_AND_SOURCES = """- Money in billions with one decimal ("$416.2 billion"),
 - End with a line "Sources:" listing each source used: "[SQL: table_name]" for database queries and "[TICKER FY#### 10-K, p.N]" for filing passages.
 """
 
-# v1: Day 2 format. v2: answer up front, bold-labelled bullets, filler removed, no length cap
-# (compared in results/; see eval/compare_runs.py).
+# v1: Day 2 format. v2: answer up front, bold-labelled bullets, filler removed, no length cap (rejected: lost facts,
+# longer answers). v3: v1 + one line asking the opening paragraph to answer every part. See eval/compare_runs.py.
 ANSWER_FORMATS = {
     "v1": """## Answer format
 - First sentence: the direct answer (the entity and/or figure).
+- Then a concise breakdown, typically 2-6 bullets, with the supporting figures and what the filing says.
+""",
+    "v3": """## Answer format
+- First sentence: the direct answer (the entity and/or figure). The opening paragraph (1-3 sentences) answers every part of the question, including the main reason for "why" or "what drove" questions.
 - Then a concise breakdown, typically 2-6 bullets, with the supporting figures and what the filing says.
 """,
     "v2": """## Answer format

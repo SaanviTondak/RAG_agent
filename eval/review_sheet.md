@@ -433,4 +433,107 @@ Holdout questions (marked 🔒) are only run once, at the end.
 
 **Gold:** Not available: the data contains annual financials and 10-K filings, not market prices.
 
+## Part 3: harder questions (added Day 4, all tune)
 
+Written because the top three models all scored 32/32. Figures come from SQL (`gold_sql`) or were copied from the page text; facts are hand-written (`reviewed: false` in `eval/gold_facts.json`).
+
+### x_033 (hard:multi_year_math, tier 3, exact_match_entity, needs sql)
+
+**Q:** Which company had the highest compound annual growth rate in revenue from fiscal year 2023 to fiscal year 2025, and what was it?
+
+**Gold:** Microsoft, at about 15.3% a year (Alphabet about 14.5%, Apple about 4.2%).
+
+- Numeric gold: `15.300468973386483` (from SQL: `SELECT 100.0 * (power(1.0 * a.revenue / b.revenue, 0.5) - 1) FROM income_statements a JOIN income_statements b ON b.company_ticker = a.company_ticker AND b.fiscal_year = 2023 WHERE a.company_ticker='MSFT' AND a.fiscal_year=2025`)
+- Gold entities: ['MSFT']
+
+### x_034 (hard:margin_change, tier 3, exact_match_entity, needs sql)
+
+**Q:** Which company's net profit margin improved the most, in percentage points, from fiscal year 2024 to fiscal year 2025?
+
+**Gold:** Alphabet: its net margin rose about 4.2 percentage points, from 28.6% to 32.8% (Apple rose about 2.9 points, Microsoft about 0.2 points).
+
+- Numeric gold: `4.206206154062542` (from SQL: `SELECT 100.0 * a.net_income / a.revenue - 100.0 * b.net_income / b.revenue FROM income_statements a JOIN income_statements b ON b.company_ticker = a.company_ticker AND b.fiscal_year = 2024 WHERE a.company_ticker='GOOGL' AND a.fiscal_year=2025`)
+- Gold entities: ['GOOGL']
+
+### x_035 (hard:older_filing_why, tier 3, llm_judge, needs sql+pdf)
+
+**Q:** Apple's net income fell in fiscal year 2024 even though revenue grew. By how much did it fall, and what does the 10-K say caused it?
+
+**Gold:** Net income fell from $97.0 billion in FY2023 to $93.7 billion in FY2024, a decrease of about $3.3 billion (3.4%), while revenue grew about 2.0%. The FY2024 10-K attributes the higher tax expense to a one-time income tax charge of $10.2 billion, net, related to the European Commission's State Aid Decision, which raised the effective tax rate to 24.1% from 14.7%.
+
+- Gold pages: AAPL_FY2024_10-K p.27, AAPL_FY2024_10-K p.42
+- Facts:
+  1. Apple's net income was $97.0 billion in FY2023
+  2. Apple's net income was $93.7 billion in FY2024
+  3. Net income decreased by about $3.3 billion (about 3.4%)
+  4. Revenue grew (about 2.0%) in FY2024
+  5. The FY2024 10-K cites a one-time income tax charge of $10.2 billion, net
+  6. The charge related to the European Commission's State Aid Decision
+  7. The effective tax rate rose to 24.1% from 14.7%
+
+### x_036 (hard:two_company_why, tier 3, llm_judge, needs sql+pdf)
+
+**Q:** Microsoft and Alphabet both grew operating income in fiscal year 2025. By how much did each grow, and what does each company's 10-K say drove it?
+
+**Gold:** Microsoft's operating income rose $19.1 billion (about 17.4%), from $109.4 billion to $128.5 billion; its 10-K says the growth came from all of its segments. Alphabet's rose $16.6 billion (about 14.8%), from $112.4 billion to $129.0 billion; its 10-K attributes the segment gains mainly to higher revenues: Google Services operating income rose $18.1 billion and Google Cloud $7.8 billion, partly offset by a $3.1 billion larger Other Bets loss and higher Alphabet-level AI research costs.
+
+- Gold pages: MSFT_FY2025_10-K p.37, GOOGL_FY2025_10-K p.38, GOOGL_FY2025_10-K p.39
+- Facts:
+  1. Microsoft's operating income rose by $19.1 billion (about 17%)
+  2. Microsoft's operating income was $109.4 billion in FY2024 and $128.5 billion in FY2025
+  3. Microsoft's 10-K says the growth came from all (each) of its segments
+  4. Alphabet's operating income rose by $16.6 billion (about 14.8%)
+  5. Alphabet's operating income was $112.4 billion in FY2024 and $129.0 billion in FY2025
+  6. Alphabet's 10-K attributes the segment operating income gains mainly to higher revenues
+  7. Google Services operating income rose $18.1 billion
+  8. Google Cloud operating income rose $7.8 billion
+  9. A larger Other Bets loss (about $3.1 billion more) or higher Alphabet-level costs partly offset the gains
+
+### x_037 (hard:definition_list, tier 2, llm_judge, needs pdf)
+
+**Q:** How does Microsoft's fiscal year 2025 10-K define Microsoft Cloud revenue, and how much was it in each of the last three fiscal years?
+
+**Gold:** Microsoft Cloud revenue includes Microsoft 365 Commercial cloud, Azure and other cloud services, the commercial portion of LinkedIn, and Dynamics 365. It was $168.9 billion in FY2025, $137.7 billion in FY2024 and $111.6 billion in FY2023.
+
+- Gold pages: MSFT_FY2025_10-K p.80, MSFT_FY2025_10-K p.33
+- Facts:
+  1. Microsoft Cloud revenue includes Microsoft 365 Commercial cloud
+  2. Microsoft Cloud revenue includes Azure and other cloud services
+  3. Microsoft Cloud revenue includes the commercial portion of LinkedIn
+  4. Microsoft Cloud revenue includes Dynamics 365
+  5. Microsoft Cloud revenue was $168.9 billion in FY2025
+  6. Microsoft Cloud revenue was $137.7 billion in FY2024
+  7. Microsoft Cloud revenue was $111.6 billion in FY2023
+
+### x_038 (hard:two_filing_figures, tier 2, llm_judge, needs pdf)
+
+**Q:** How much did Apple and Alphabet each spend on share repurchases in fiscal year 2025, and which spent more?
+
+**Gold:** Apple spent more. Apple's cash flow statement shows $90.7 billion of repurchases of common stock in FY2025 (Note 10 reports 402 million shares repurchased for $89.3 billion; either figure is acceptable). Alphabet repurchased 240 million shares for $45.4 billion.
+
+- Gold pages: AAPL_FY2025_10-K p.34, AAPL_FY2025_10-K p.45, GOOGL_FY2025_10-K p.42, GOOGL_FY2025_10-K p.80
+- Facts:
+  1. Apple spent more on share repurchases than Alphabet in FY2025
+  2. Apple's FY2025 repurchases were about $90.7 billion (cash flow statement) or $89.3 billion (Note 10); either figure counts
+  3. Alphabet's FY2025 repurchases were $45.4 billion
+
+### x_039 (hard:share_change, tier 2, llm_judge, needs sql)
+
+**Q:** What share of Alphabet's revenue came from Google Cloud in fiscal year 2025, and how did that share change from fiscal year 2024?
+
+**Gold:** Google Cloud was about 14.6% of Alphabet's FY2025 revenue ($58.7 billion of $402.8 billion), up from about 12.4% in FY2024 ($43.2 billion of $350.0 billion), an increase of about 2.2 percentage points.
+
+- Facts:
+  1. Google Cloud was about 14.6% of Alphabet's FY2025 revenue
+  2. Google Cloud revenue was $58.7 billion in FY2025
+  3. Google Cloud was about 12.4% (12.3-12.4%) of Alphabet's FY2024 revenue
+  4. The share increased by about 2.2 percentage points
+
+### x_040 (hard:pdf_figure_plus_sql, tier 2, fuzzy_numeric, needs sql+pdf)
+
+**Q:** What percentage of Microsoft's fiscal year 2025 revenue came from Microsoft Cloud?
+
+**Gold:** About 60.0% ($168.9 billion of $281.7 billion).
+
+- Numeric gold: `59.952293734293136` (from the filing)
+- Gold pages: MSFT_FY2025_10-K p.33, MSFT_FY2025_10-K p.80

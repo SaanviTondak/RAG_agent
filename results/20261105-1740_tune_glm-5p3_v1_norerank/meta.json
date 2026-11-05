@@ -1,0 +1,12 @@
+{
+  "set": "tune",
+  "ids": "q_006,q_012,q_014,q_017,q_025,x_014,x_015,x_017,x_019,x_020,x_021,x_022,x_029,x_035,x_036,x_037,x_038,x_040",
+  "model": "accounts/fireworks/models/glm-5p3",
+  "judge": "accounts/fireworks/models/deepseek-v4p1-flash",
+  "runs": 1,
+  "rerank": false,
+  "prompt": "v1",
+  "system": "agent",
+  "fact_split_usd": 0.0,
+  "graded_at": "2026-11-05 17:44"
+}

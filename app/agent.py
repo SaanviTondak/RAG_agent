@@ -5,6 +5,8 @@ Guardrails around the LLM's own routing:
 - the first turn must call a tool (no answering from memory),
 - coverage nudges: before accepting an answer, send the model back once if a narrative question never
   touched the filings, or a numeric question never touched SQL or a financial table,
+- grounding nudge (optional): send it back once if a percentage in the draft appears in no tool result
+  (usually head arithmetic),
 - a tool-call budget, after which the model must answer from the evidence it has.
 
 CLI: python -m app.agent "question" [--model ID] [--no-rerank]
@@ -18,8 +20,10 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
 import app.retrieval
-from app.config import CHAT_MODEL, MAX_TOKENS, MAX_TOOL_CALLS, MAX_TURNS, PROMPT_VERSION, SEED, TEMPERATURE, TRACE_DIR
+from app.config import (CHAT_MODEL, GROUNDING_NUDGE, MAX_TOKENS, MAX_TOOL_CALLS, MAX_TURNS, PROMPT_VERSION, SEED,
+                        TEMPERATURE, TRACE_DIR)
 from app.llm import cached_tokens, chat, cost_usd
+from app.numbers import ungrounded_numbers
 from app.prompts import SYSTEM_PROMPTS
 from app.tools import TOOL_SCHEMAS, run_tool
 
@@ -42,6 +46,9 @@ FILINGS_NUDGE = ("Before answering: this question asks about explanations or dis
                  "part, then answer.")
 NUMERIC_NUDGE = ("Before answering: the question involves figures, but you have not checked the database or a "
                  "financial table in the filings. Verify the numbers with query_sql (or a filing table), then answer.")
+GROUNDING_NUDGE_TEXT = ("Before answering: these percentages in your draft do not appear in any tool result: {nums}. "
+                        "Compute each one with calculate (or SQL) and use the tool's result, or remove it. Then give "
+                        "the full answer again.")
 FALLBACK_PROMPT = ("Tool budget reached. Answer now using only the evidence gathered above, in the required format, "
                    "and state briefly what could not be verified.")
 THINK_RE = re.compile(r"<think>.*?</think>", re.S)
@@ -61,13 +68,19 @@ def hints(question: str) -> str:
     return f"\n\n[Parser hints, verify against the question: {'; '.join(parts)}]" if parts else ""
 
 
-def _nudge(question: str, evidence: dict, sent: set) -> str | None:
+def _nudge(question: str, evidence: dict, sent: set, draft: str = "", tool_texts: list[str] | None = None,
+           grounding: bool = False) -> str | None:
     if "filings" not in sent and not evidence["filings"] and NARRATIVE_RE.search(question):
         sent.add("filings")
         return FILINGS_NUDGE
     if "numeric" not in sent and not (evidence["sql"] or evidence["table"]) and NUMERIC_RE.search(question):
         sent.add("numeric")
         return NUMERIC_NUDGE
+    if grounding and "grounding" not in sent:
+        _, ungrounded = ungrounded_numbers(draft, tool_texts or [], percentages_only=True)
+        if ungrounded:
+            sent.add("grounding")
+            return GROUNDING_NUDGE_TEXT.format(nums=", ".join(dict.fromkeys(ungrounded)))
     return None
 
 
@@ -90,7 +103,7 @@ def _record_evidence(meta: dict, evidence: dict, sources: dict) -> None:
 
 
 def run(question: str, history: list[dict] | None = None, model: str = CHAT_MODEL, rerank: bool | None = None,
-        on_step=None, prompt: str = PROMPT_VERSION) -> dict:
+        on_step=None, prompt: str = PROMPT_VERSION, grounding_nudge: bool = GROUNDING_NUDGE) -> dict:
     """Answer one question. `history` is prior chat turns ({role, content}) for UI follow-ups."""
     if rerank is not None:
         app.retrieval.rerank_enabled = rerank
@@ -145,7 +158,8 @@ def run(question: str, history: list[dict] | None = None, model: str = CHAT_MODE
             continue
 
         content = THINK_RE.sub("", msg.content or "").strip()
-        nudge = _nudge(question, evidence, nudges)
+        nudge = _nudge(question, evidence, nudges, content, [t["result"] for t in trace if t["type"] == "tool"],
+                       grounding_nudge)
         if nudge and usage["tool_calls"] < MAX_TOOL_CALLS:
             messages += [{"role": "assistant", "content": content}, {"role": "user", "content": nudge}]
             emit({"type": "nudge", "text": nudge})
@@ -162,7 +176,7 @@ def run(question: str, history: list[dict] | None = None, model: str = CHAT_MODE
                                        usage["cached_tokens"]), 6)
     result = {"question": question, "answer": answer, "sources": list(sources.values()), "trace": trace,
               "usage": {**usage, "latency_ms": int((time.time() - t0) * 1000)}, "model": model,
-              "prompt": prompt}
+              "prompt": prompt, "grounding_nudge": grounding_nudge}
     _save_trace(result)
     return result
 

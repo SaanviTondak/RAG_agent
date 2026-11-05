@@ -79,7 +79,17 @@ results/<run_id>/
 - Day 4 model comparison (done early, 2026-11-05): 6 models + glm-5p3 on all 32 tune questions, prompt v1,
   `results/model_comparison_20261105-1639.md` (~$2.25). 32/32: deepseek-v4p1-flash, glm-5p3, qwen3p8-max;
   31/32: glm-5p3-flash, kimi-k3 (both missed the x_029 restatement); minimax-m3 29; gpt-oss-120b 24.
-  Top three tie (ceiling effect) -> tie-break on reliability/latency/cost. Recommended: keep glm-5p3 (pending Saanvi).
+  Top three tie (ceiling effect) -> tie-break on reliability/latency/cost. **Chosen: glm-5p3** (Saanvi confirmed).
+- Day 4 (2026-11-05), all on glm-5p3:
+  1. 8 harder questions x_033-x_040 (tune; hand-written facts, Part 3 of review sheet). Agent v1: 40/40.
+  2. Baselines (`app/baseline.py`, `--system rag|pipeline`) on dev + hard (18 q): agent 18/18, pipeline 13/18
+     (p=0.06), single-search RAG 10/18 (p=0.008). Agent also faster (p50 9.8s vs 30.6s / 24.7s).
+  3. Prompt v3 (v1 + "opening paragraph answers every part") + grounding nudge, 40 q: opening coverage 0.65 -> 0.75
+     (7 better / 0 worse, p=0.02) but q_006 lost facts again (as with v2) -> **rejected, keep v1**.
+     Grounding nudge (`app/numbers.py`, `GROUNDING_NUDGE`): fired 3/3 on q_008 live and fixed the head-math %;
+     no false fires in 40 q -> **on by default**.
+  4. No-rerank on the 18 PDF questions: 17/18 vs 18/18, opening passes 6 vs 9 -> keep rerank (small effect).
+  - Day 4 spend ~$1.6 (quoted ~$0.9: baselines cost 2x my estimate). Run ids in results/compare_*.md.
 
 ## Extra question mix (~30)
 

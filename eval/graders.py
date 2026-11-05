@@ -9,62 +9,14 @@ Every grader returns {"pass", "score" (0-1), "reason", "details", "judge_usage"}
 
 import json
 import re
-from decimal import Decimal
 from functools import lru_cache
 
 from app.config import INDEX_DIR, TICKERS
 from app.llm import cached_tokens, chat, cost_usd
+from app.numbers import (ABBREVIATIONS, body, number_matches, numbers_agree, parse_numbers,  # noqa: F401
+                         ungrounded_numbers)
 
-# ---------------------------------------------------------------- numbers
-
-SCALES = {"trillion": 1e12, "tn": 1e12, "t": 1e12, "billion": 1e9, "bn": 1e9, "b": 1e9,
-          "million": 1e6, "mn": 1e6, "mm": 1e6, "m": 1e6, "thousand": 1e3, "k": 1e3}
-NUM_RE = re.compile(
-    r"(?<![\w.])(?!\d+-K\b)([-−]?)\$?\s?(\d{1,3}(?:,\d{3})+|\d+)(\.\d+)?"
-    r"(?:\s?(%|percent\b|percentage points?\b|pp\b|x\b|trillion\b|billion\b|million\b|thousand\b"
-    r"|tn\b|bn\b|mn\b|mm\b|[tbmk]\b))?", re.I)
-ABBREVIATIONS = re.compile(r"\b(U\.S|Inc|Corp|Co|Ltd|vs|approx|e\.g|i\.e|No)\.", re.I)
-SOURCES_RE = re.compile(r"^\W*sources?\W*:", re.I | re.M)
-
-
-def parse_numbers(text: str) -> list[dict]:
-    """Every number in `text` with its written precision: '$416.2 billion' -> value 416.2e9, step 0.1e9."""
-    out = []
-    for m in NUM_RE.finditer(text):
-        sign, whole, frac, unit = m.groups()
-        value = float(whole.replace(",", "") + (frac or ""))
-        step = 10.0 ** -(len(frac) - 1) if frac else 1.0
-        unit = (unit or "").lower()
-        scale = SCALES.get(unit, 1.0)
-        out.append({"value": -value if sign else value, "step": step, "scale": scale,
-                    "pct": unit.startswith(("%", "percent", "pp")), "unit": unit,
-                    "is_year": not frac and not unit and 1990 <= value <= 2035, "text": m.group(0).strip()})
-    return out
-
-
-def _step_of(x: float) -> float:
-    exp = Decimal(str(x)).normalize().as_tuple().exponent
-    return 10.0 ** min(exp, 0)
-
-
-def numbers_agree(a: float, a_step: float, b: float, b_step: float) -> bool:
-    """Equal once both are rounded to the coarser of the two precisions (sign ignored: 'fell 3.8%' = -3.8)."""
-    return abs(abs(a) - abs(b)) <= max(a_step, b_step) / 2 * (1 + 1e-9) + 1e-9 * max(abs(b), 1)
-
-
-def number_matches(n: dict, gold: float) -> bool:
-    """Gold may be raw (416161000000) or already in the answer's unit (66.95 for '$66.95 billion')."""
-    g_step = _step_of(gold)
-    return (numbers_agree(n["value"] * n["scale"], n["step"] * n["scale"], gold, g_step)
-            or numbers_agree(n["value"], n["step"], gold, g_step))
-
-
-def body(answer: str) -> str:
-    """The answer without its trailing Sources: line(s)."""
-    m = None
-    for m in SOURCES_RE.finditer(answer):
-        pass
-    return answer[: m.start()] if m else answer
+# ---------------------------------------------------------------- text
 
 
 def first_sentence(answer: str) -> str:
@@ -288,29 +240,9 @@ def citation_check(result: dict) -> dict:
     return {"n_cited": cited, "invalid": invalid, "ok": not invalid}
 
 
-TOOL_MULTIPLIERS = (1.0, 100.0, 1e3, 1e6, 1e9, 1e12)  # filing tables are in millions; ratios may become %
-DATE_RE = re.compile(r"\b(?:January|February|March|April|May|June|July|August|September|October|November|December)"
-                     r"\s+\d{1,2}\b(?:,\s*\d{4})?")
-
-
 def grounding_check(result: dict) -> dict:
-    """Numbers in the answer that don't appear (to the answer's precision) in any tool output.
-
-    Skips years, dates, small counts (<10, no unit), and the Sources line. A hit means the model probably
-    did arithmetic in its head or invented a figure.
-    """
-    tool_nums = [(n["value"] * n["scale"], n["step"] * n["scale"]) for s in _tool_steps(result)
-                 for n in parse_numbers(s.get("result", ""))]
-    tool_nums += [(n["value"], n["step"]) for s in _tool_steps(result) for n in parse_numbers(s.get("result", ""))
-                  if n["scale"] != 1.0]
-    checked, ungrounded = 0, []
-    for n in parse_numbers(DATE_RE.sub("", re.sub(r"\[[^\]]*\]", "", body(result["answer"])))):
-        if n["is_year"] or (n["step"] == 1.0 and not n["unit"] and abs(n["value"]) < 10):
-            continue
-        checked += 1
-        a, a_step = n["value"] * n["scale"], n["step"] * n["scale"]
-        if not any(numbers_agree(a, a_step, t * k, t_step * k) for t, t_step in tool_nums for k in TOOL_MULTIPLIERS):
-            ungrounded.append(n["text"])
+    """Answer numbers not found in any tool output (see app.numbers.ungrounded_numbers)."""
+    checked, ungrounded = ungrounded_numbers(result["answer"], [s.get("result", "") for s in _tool_steps(result)])
     return {"n_checked": checked, "ungrounded": ungrounded, "ok": not ungrounded}
 
 
