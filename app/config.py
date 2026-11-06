@@ -57,6 +57,10 @@ SEARCH_TOP_K = 6
 
 # Agent budgets and sampling
 MAX_TOOL_CALLS = 8
+# Wall-clock budget per question. No new tool calls after TOOL_CUTOFF_S, leaving room for the final writing call
+# (slowest seen: 36s); past the budget the server returns 504. None of 90 measured answers hit either (max 56s).
+AGENT_TIME_BUDGET_S = float(os.getenv("AGENT_TIME_BUDGET_S", "90"))
+TOOL_CUTOFF_S = AGENT_TIME_BUDGET_S - 35
 MAX_TURNS = 10
 MAX_TOKENS = 4096
 TEMPERATURE = 0.0

@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>10-K Research Assistant</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1b1f24; --muted: #5d6673; --faint: #8a93a0;
+    --line: #e3e6ea; --accent: #2f5bd3; --accent-soft: #e8eefc; --user: #eef1f5;
+    --code: #f3f4f6; --err: #b42318; --err-soft: #fdecea; --ok: #1a7f4b;
+    --radius: 10px; --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111418; --panel: #191d23; --text: #e6e9ed; --muted: #a3acb8; --faint: #77808c;
+      --line: #2b313a; --accent: #7aa2ff; --accent-soft: #1e2a44; --user: #222831;
+      --code: #222831; --err: #ff8a80; --err-soft: #3a1f1f; --ok: #5fd39a;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; display: flex; flex-direction: column; background: var(--bg); color: var(--text);
+         font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  header { display: flex; align-items: center; gap: 16px; padding: 14px 24px; border-bottom: 1px solid var(--line);
+           background: var(--panel); }
+  header h1 { font-size: 17px; margin: 0; font-weight: 650; }
+  header p { margin: 0; color: var(--muted); font-size: 13px; }
+  header .spacer { flex: 1; }
+  button { font: inherit; cursor: pointer; }
+  .btn { border: 1px solid var(--line); background: var(--panel); color: var(--text); border-radius: 8px; padding: 6px 12px; }
+  .btn:hover { border-color: var(--accent); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); }
+  #chat-col { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--line); }
+  #messages { flex: 1; overflow-y: auto; padding: 24px; }
+  #evidence { overflow-y: auto; padding: 20px 24px; background: var(--panel); }
+  .msg { max-width: 820px; margin: 0 auto 20px; }
+  .msg.user .bubble { background: var(--user); border-radius: var(--radius); padding: 10px 14px; display: inline-block; }
+  .msg.user { text-align: right; }
+  .msg.user .bubble { text-align: left; }
+  .msg.assistant .bubble { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+                           padding: 14px 18px; cursor: pointer; }
+  .msg.assistant.selected .bubble { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .answer p { margin: 0 0 10px; } .answer p:last-child { margin-bottom: 0; }
+  .answer ul, .answer ol { margin: 4px 0 10px; padding-left: 22px; } .answer li { margin: 3px 0; }
+  .answer h3, .answer h4 { margin: 12px 0 6px; font-size: 15px; }
+  .answer .sources-line { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); padding-top: 8px; margin-top: 10px; }
+  a.cite { color: var(--accent); text-decoration: none; border-bottom: 1px dotted var(--accent); }
+  a.cite:hover { background: var(--accent-soft); }
+  code { font-family: var(--mono); font-size: 12.5px; background: var(--code); padding: 1px 4px; border-radius: 4px; }
+  table.md { border-collapse: collapse; margin: 8px 0; font-size: 13px; display: block; overflow-x: auto; }
+  table.md th, table.md td { border: 1px solid var(--line); padding: 4px 8px; text-align: left; white-space: nowrap; }
+  table.md th { background: var(--code); font-weight: 600; }
+  .steps { list-style: none; margin: 0; padding: 0; font-size: 13.5px; color: var(--muted); }
+  .steps li { padding: 3px 0 3px 18px; position: relative; }
+  .steps li::before { content: ""; position: absolute; left: 4px; top: 11px; width: 6px; height: 6px; border-radius: 50%;
+                      background: var(--faint); }
+  .steps li.done::before { background: var(--ok); }
+  .steps li.working { color: var(--text); }
+  .steps li.working::before { background: var(--accent); animation: pulse 1s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .25; } }
+  details.how { margin-top: 12px; font-size: 13.5px; color: var(--muted); }
+  details.how summary { cursor: pointer; user-select: none; }
+  details.how .steps { margin-top: 6px; }
+  details.step-detail summary { cursor: pointer; }
+  details.step-detail pre { white-space: pre-wrap; word-break: break-word; background: var(--code); border-radius: 6px;
+                            padding: 8px 10px; font: 12px/1.45 var(--mono); color: var(--text); margin: 6px 0; max-height: 260px; overflow: auto; }
+  .error { color: var(--err); background: var(--err-soft); border-radius: 8px; padding: 10px 12px; }
+  .error .btn { margin-top: 8px; }
+  #composer { border-top: 1px solid var(--line); background: var(--panel); padding: 14px 24px; }
+  #composer form { max-width: 820px; margin: 0 auto; display: flex; gap: 10px; align-items: flex-end; }
+  #composer textarea { flex: 1; resize: none; min-height: 44px; max-height: 160px; padding: 10px 12px; border-radius: 8px;
+                       border: 1px solid var(--line); background: var(--bg); color: var(--text); font: inherit; }
+  #composer textarea:focus { outline: none; border-color: var(--accent); }
+  #composer .hint { max-width: 820px; margin: 6px auto 0; color: var(--faint); font-size: 12px; }
+  .welcome { max-width: 820px; margin: 4vh auto 0; }
+  .welcome h2 { font-size: 20px; margin: 0 0 6px; }
+  .welcome p { color: var(--muted); margin: 0 0 16px; }
+  .examples { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+  .examples button { display: flex; flex-direction: column; justify-content: flex-start; text-align: left; border: 1px solid var(--line); background: var(--panel); color: var(--text);
+                     border-radius: var(--radius); padding: 10px 12px; font-size: 14px; }
+  .examples button:hover { border-color: var(--accent); }
+  .examples .tag { display: block; color: var(--faint); font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 3px; }
+  #evidence h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 4px; }
+  #evidence .for { font-size: 14px; margin: 0 0 16px; color: var(--text); }
+  #evidence .empty { color: var(--faint); font-size: 14px; }
+  .card { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 12px; background: var(--bg); }
+  .card.flash { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .card .head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+  .card .kind { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--faint); }
+  .card .title { font-weight: 600; font-size: 14px; }
+  .card .head .spacer { flex: 1; }
+  .card a.open { font-size: 13px; color: var(--accent); text-decoration: none; white-space: nowrap; }
+  .card a.open:hover { text-decoration: underline; }
+  .card .section { color: var(--muted); font-size: 12.5px; margin-bottom: 6px; }
+  .card .snippet { font-size: 13px; border-left: 3px solid var(--line); padding: 2px 0 2px 10px; margin: 8px 0; color: var(--text); }
+  .card .snippet p { margin: 0 0 6px; }
+  .card pre.sql { white-space: pre-wrap; word-break: break-word; font: 12px/1.45 var(--mono); background: var(--code);
+                  border-radius: 6px; padding: 8px 10px; margin: 6px 0; }
+  @media (max-width: 900px) {
+    body { display: block; height: auto; }
+    main { display: block; }
+    #chat-col { border-right: none; min-height: 70vh; }
+    #messages { overflow: visible; }
+    #evidence { border-top: 1px solid var(--line); }
+    header { flex-wrap: wrap; padding: 12px 16px; }
+    #messages, #evidence, #composer { padding-left: 16px; padding-right: 16px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>10-K Research Assistant</h1>
+    <p>Apple, Microsoft and Alphabet: FY2023–FY2025 financials database and FY2024/FY2025 10-K filings</p>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn" id="new-chat" type="button">New chat</button>
+</header>
+<main>
+  <section id="chat-col">
+    <div id="messages" aria-live="polite"></div>
+    <div id="composer">
+      <form id="ask">
+        <textarea id="q" rows="1" placeholder="Ask about revenue, segments, risks, strategy…" aria-label="Question"></textarea>
+        <button class="btn primary" id="send" type="submit">Ask</button>
+      </form>
+      <div class="hint">Enter to send, Shift+Enter for a new line. Follow-up questions use the last 3 exchanges.</div>
+    </div>
+  </section>
+  <aside id="evidence" aria-label="Evidence"></aside>
+</main>
+
+<script>
+const EXAMPLES = [
+  ["Database", "What was Apple's total net revenue in fiscal year 2025?"],
+  ["Comparison", "Which company had the highest operating margin in fiscal year 2025, and what was it?"],
+  ["Filings", "What risks related to artificial intelligence does Microsoft disclose in its fiscal year 2025 10-K?"],
+  ["Database + filings", "How did Apple's Greater China revenue change between fiscal year 2024 and fiscal year 2025, and does the 10-K explain why?"],
+  ["Restated figures", "What was Microsoft's Intelligent Cloud revenue in fiscal year 2024?"],
+  ["Out of scope", "What was Amazon's total revenue in fiscal year 2025?"],
+];
+const HISTORY_MESSAGES = 6;
+const $ = (s, el = document) => el.querySelector(s);
+const messagesEl = $("#messages"), evidenceEl = $("#evidence"), qEl = $("#q"), sendEl = $("#send");
+let history = [], busy = false, turns = [], shown = null;
+
+// ---------------------------------------------------------------- markdown (small, safe subset)
+const esc = s => s.replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const CITE = /\b(AAPL|MSFT|GOOGL) FY(\d{4}) 10-K,?\s*pp?\.\s*(\d+)(?:\s*[-–]\s*(\d+))?/g;
+
+function inline(s) {
+  s = esc(s);
+  s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
+  s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  s = s.replace(/(^|[\s(])\*([^*\s][^*]*)\*(?=[\s).,;:]|$)/g, "$1<em>$2</em>");
+  s = s.replace(CITE, (m, t, y, p1) =>
+    `<a class="cite" href="/pdfs/${t}_FY${y}_10-K.pdf#page=${p1}" target="_blank" rel="noopener" data-cite="${t} FY${y} 10-K p${p1}">${m}</a>`);
+  return s;
+}
+
+function table(lines) {
+  const cells = l => l.trim().replace(/^\||\|$/g, "").split("|").map(c => c.trim());
+  const head = cells(lines[0]), rows = lines.slice(1).filter(l => !/^\s*\|?\s*:?-{2,}/.test(l)).map(cells);
+  return `<table class="md"><thead><tr>${head.map(h => `<th>${inline(h)}</th>`).join("")}</tr></thead><tbody>` +
+    rows.map(r => `<tr>${r.map(c => `<td>${inline(c)}</td>`).join("")}</tr>`).join("") + "</tbody></table>";
+}
+
+function markdown(src) {
+  const lines = src.replace(/\r/g, "").split("\n");
+  let html = "", para = [], stack = [];  // stack of open lists: {type, indent}
+  const flushPara = () => { if (para.length) { html += `<p>${inline(para.join(" "))}</p>`; para = []; } };
+  const closeLists = (indent = -1) => {
+    while (stack.length && stack[stack.length - 1].indent > indent) html += `</li></${stack.pop().type}>`;
+  };
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line.trim()) { flushPara(); continue; }
+    if (/^\s*\|.*\|\s*$/.test(line)) {
+      flushPara(); closeLists();
+      const block = [];
+      while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) block.push(lines[i++]);
+      i--; html += table(block); continue;
+    }
+    const h = line.match(/^\s*(#{1,4})\s+(.*)$/);
+    if (h) { flushPara(); closeLists(); html += `<h4>${inline(h[2])}</h4>`; continue; }
+    const li = line.match(/^(\s*)([-*+]|\d+[.)])\s+(.*)$/);
+    if (li) {
+      flushPara();
+      const indent = li[1].length, type = /\d/.test(li[2]) ? "ol" : "ul";
+      const top = stack[stack.length - 1];
+      if (!top || indent > top.indent) { html += `<${type}><li>`; stack.push({type, indent}); }
+      else { closeLists(indent); const t = stack[stack.length - 1];
+             if (t && t.indent === indent) html += "</li><li>"; else { html += `<${type}><li>`; stack.push({type, indent}); } }
+      html += inline(li[3]); continue;
+    }
+    if (stack.length && /^\s+\S/.test(line)) { html += " " + inline(line.trim()); continue; }
+    closeLists();
+    if (/^\W*sources?\W*:/i.test(line)) { flushPara(); html += `<div class="sources-line">${inline(line.trim())}</div>`; continue; }
+    para.push(line.trim());
+  }
+  flushPara(); closeLists();
+  return html;
+}
+
+// ---------------------------------------------------------------- rendering
+function welcome() {
+  messagesEl.innerHTML = `<div class="welcome"><h2>Ask a question about the three companies</h2>
+    <p>The assistant decides whether to query the financials database, search the 10-K filings, or both, and cites
+    what it used. Click any answer to see its evidence on the right.</p><div class="examples"></div></div>`;
+  const box = $(".examples", messagesEl);
+  for (const [tag, q] of EXAMPLES) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.innerHTML = `<span class="tag">${esc(tag)}</span>${esc(q)}`;
+    b.onclick = () => ask(q);
+    box.appendChild(b);
+  }
+  evidenceEl.innerHTML = `<h2>Evidence</h2><p class="empty">Cited filing pages and database results appear here.</p>`;
+}
+
+function stepItem(step, state) {
+  const li = document.createElement("li");
+  li.className = state;
+  if (step.detail) {
+    li.innerHTML = `<details class="step-detail"><summary>${esc(step.label)}</summary><pre>${esc(step.detail)}</pre></details>`;
+  } else li.textContent = step.label;
+  return li;
+}
+
+function renderEvidence(turn) {
+  shown = turn;
+  turns.forEach(t => t.el.classList.toggle("selected", t === turn));
+  const srcs = turn.sources || [];
+  let html = `<h2>Evidence</h2><p class="for">${esc(turn.question)}</p>`;
+  if (!srcs.length) html += `<p class="empty">${turn.done ? "No sources cited." : "Waiting for the answer…"}</p>`;
+  for (const s of srcs) {
+    if (s.type === "filing") {
+      const pages = s.pages[0] === s.pages[1] ? `p.${s.pages[0]}` : `pp.${s.pages[0]}–${s.pages[1]}`;
+      html += `<div class="card" data-cite="${esc(s.doc.replace(/_/g, " ").replace(" 10-K", ""))} 10-K p${s.pages[0]}">
+        <div class="head"><span class="kind">Filing</span><span class="title">${esc(s.citation)}</span><span class="spacer"></span>
+        <a class="open" href="${esc(s.url)}" target="_blank" rel="noopener">Open PDF at ${pages}</a></div>
+        ${s.section ? `<div class="section">${esc(s.section)}</div>` : ""}
+        ${(s.snippets || []).map(t => `<div class="snippet">${markdown(t)}</div>`).join("") ||
+          `<div class="section">Cited page (the agent read this section in full).</div>`}</div>`;
+    } else if (s.type === "sql") {
+      html += `<div class="card"><div class="head"><span class="kind">Database</span><span class="title">${esc(s.citation.replace(/^SQL: /, ""))}</span></div>
+        <pre class="sql">${esc(s.sql)}</pre>${markdown(s.result)}</div>`;
+    }
+  }
+  evidenceEl.innerHTML = html;
+}
+
+function addUser(q) {
+  const div = document.createElement("div");
+  div.className = "msg user";
+  div.innerHTML = `<div class="bubble"></div>`;
+  $(".bubble", div).textContent = q;
+  messagesEl.appendChild(div);
+}
+
+function addAssistant(question) {
+  const div = document.createElement("div");
+  div.className = "msg assistant";
+  div.innerHTML = `<div class="bubble"><ul class="steps"></ul><div class="answer"></div></div>`;
+  messagesEl.appendChild(div);
+  const turn = {question, el: div, steps: [], sources: [], done: false};
+  div.addEventListener("click", e => { if (!e.target.closest("a, summary, button")) renderEvidence(turn); });
+  turns.push(turn);
+  const working = document.createElement("li");
+  working.className = "working";
+  working.textContent = "Planning which sources to use";
+  $(".steps", div).appendChild(working);
+  turn.working = working;
+  return turn;
+}
+
+const stacked = () => window.matchMedia("(max-width: 900px)").matches;
+function scrollDown() {
+  if (stacked()) window.scrollTo(0, messagesEl.offsetTop + messagesEl.scrollHeight - window.innerHeight + 160);
+  else messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function onStep(turn, step) {
+  turn.steps.push(step);
+  const list = $(".steps", turn.el);
+  list.insertBefore(stepItem(step, "done"), turn.working);
+  turn.working.textContent = step.kind === "check" ? "Writing the answer" : "Reviewing the results";
+  scrollDown();
+}
+
+function onAnswer(turn, content) {
+  turn.answer = content;
+  turn.working.remove();
+  const stepsList = $(".steps", turn.el);
+  const how = document.createElement("details");
+  how.className = "how";
+  how.innerHTML = `<summary>How I answered (${turn.steps.length} step${turn.steps.length === 1 ? "" : "s"})</summary>`;
+  how.appendChild(stepsList);
+  $(".answer", turn.el).innerHTML = markdown(content);
+  $(".bubble", turn.el).appendChild(how);
+  turn.el.querySelectorAll("a.cite").forEach(a => a.addEventListener("mouseenter", () => {
+    if (shown !== turn) return;  // hovering never switches answers; clicking an answer does
+    const card = evidenceEl.querySelector(`.card[data-cite="${a.dataset.cite}"]`);
+    if (card) { card.classList.add("flash"); card.scrollIntoView({block: "nearest", behavior: "smooth"});
+                setTimeout(() => card.classList.remove("flash"), 1200); }
+  }));
+  scrollDown();
+}
+
+function onError(turn, status, message, question) {
+  if (turn.working) turn.working.remove();
+  const box = document.createElement("div");
+  box.className = "error";
+  box.innerHTML = `<div>${esc(message)}${status ? ` (HTTP ${status})` : ""}</div>`;
+  const retry = document.createElement("button");
+  retry.className = "btn"; retry.type = "button"; retry.textContent = "Try again";
+  retry.onclick = e => { e.stopPropagation(); ask(question); };
+  box.appendChild(retry);
+  $(".answer", turn.el).appendChild(box);
+  turn.done = true;
+}
+
+// ---------------------------------------------------------------- talking to the API (SSE over fetch)
+async function ask(question) {
+  question = question.trim();
+  if (!question || busy) return;
+  if ($(".welcome", messagesEl)) messagesEl.innerHTML = "";
+  busy = true; sendEl.disabled = true; qEl.value = ""; autosize();
+  addUser(question);
+  const turn = addAssistant(question);
+  renderEvidence(turn);
+  scrollDown();
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST", headers: {"Content-Type": "application/json", "Accept": "text/event-stream"},
+      body: JSON.stringify({question, history: history.slice(-HISTORY_MESSAGES)}),
+    });
+    if (!res.ok) {
+      let msg = "Request failed";
+      try { const d = await res.json(); msg = d.error || (d.detail && JSON.stringify(d.detail)) || msg; } catch (_) {}
+      onError(turn, res.status, msg, question); return;
+    }
+    const reader = res.body.getReader(), decoder = new TextDecoder();
+    let buf = "";
+    for (;;) {
+      const {value, done} = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, {stream: true});
+      let i;
+      while ((i = buf.indexOf("\n\n")) >= 0) {
+        const block = buf.slice(0, i); buf = buf.slice(i + 2);
+        let event = "message", data = "";
+        for (const line of block.split("\n")) {
+          if (line.startsWith("event: ")) event = line.slice(7);
+          else if (line.startsWith("data: ")) data += line.slice(6);
+        }
+        if (!data) continue;
+        const d = JSON.parse(data);
+        if (event === "step") onStep(turn, d);
+        else if (event === "answer") onAnswer(turn, d.content);
+        else if (event === "sources") {
+          turn.sources = d.sources; turn.done = true; renderEvidence(turn);
+          history.push({role: "user", content: question}, {role: "assistant", content: turn.answer});
+          history = history.slice(-HISTORY_MESSAGES);
+        } else if (event === "error") onError(turn, d.status, d.error, question);
+      }
+    }
+    if (!turn.done) onError(turn, 0, "The connection closed before an answer arrived.", question);
+  } catch (e) {
+    onError(turn, 0, "Could not reach the server: " + e.message, question);
+  } finally {
+    busy = false; sendEl.disabled = false; qEl.focus();
+  }
+}
+
+function autosize() { qEl.style.height = "auto"; qEl.style.height = Math.min(qEl.scrollHeight, 160) + "px"; }
+qEl.addEventListener("input", autosize);
+qEl.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(qEl.value); } });
+$("#ask").addEventListener("submit", e => { e.preventDefault(); ask(qEl.value); });
+$("#new-chat").addEventListener("click", () => { if (busy) return; history = []; turns = []; welcome(); qEl.focus(); });
+welcome();
+qEl.focus();
+</script>
+</body>
+</html>

@@ -1,0 +1,156 @@
+{
+ "answer": "Apple's Greater China net sales fell from $66.95 billion in FY2024 to $64.38 billion in FY2025, a decline of $2.58 billion (\u22123.8%, shown as (4)% in the 10-K), and yes \u2014 the FY2025 10-K explains the decrease.\n\n- **FY2024 (ended September 28, 2024):** $66.95 billion; **FY2025 (ended September 27, 2025):** $64.38 billion \u2014 a decrease of $2.58 billion, or \u22123.8%.\n- **Why (per the 10-K):** \"Greater China net sales decreased during 2025 compared to 2024 primarily due to lower net sales of iPhone, partially offset by higher net sales of Mac\" (Item 7, MD&A, Segment Operating Performance).\n- This was the second consecutive annual decline in the segment: Greater China was $72.56 billion in FY2023, down 8% in FY2024 and another 4% in FY2025, even as Apple's total net sales grew 6% to $416.2 billion in FY2025.\n- Note: Greater China is one of Apple's five reportable segments (its reportable segments are geographic, not product-based).\n\nSources:\n- [SQL: geographic_revenue]\n- [AAPL FY2025 10-K, p.24] (MD&A, Segment Operating Performance / Greater China)\n- [AAPL FY2025 10-K, p.48] (Note 13 \u2013 Segment Information and Geographic Data)",
+ "sources": [
+  {
+   "type": "sql",
+   "sql": "SELECT fiscal_year, period_end, revenue FROM geographic_revenue WHERE company_ticker = 'AAPL' AND region = 'Greater China' AND fiscal_year IN (2024, 2025) ORDER BY fiscal_year",
+   "rows": 2
+  },
+  {
+   "type": "filing",
+   "citation": "AAPL FY2025 10-K, p.24",
+   "doc": "AAPL_FY2025_10-K",
+   "page": 24,
+   "section": "Greater China",
+   "chunk_id": "AAPL_FY2025_10-K#p36.c3",
+   "parent_id": "AAPL_FY2025_10-K#p36",
+   "is_table": false,
+   "text": "Greater China net sales decreased during 2025 compared to 2024 primarily due to lower net sales of iPhone, partially offset by higher net sales of Mac."
+  },
+  {
+   "type": "filing",
+   "citation": "AAPL FY2025 10-K, p.24",
+   "doc": "AAPL_FY2025_10-K",
+   "page": 24,
+   "section": "Segment Operating Performance",
+   "chunk_id": "AAPL_FY2025_10-K#p36.c0",
+   "parent_id": "AAPL_FY2025_10-K#p36",
+   "is_table": true,
+   "text": "The following table shows net sales by reportable segment for 2025, 2024 and 2023 (dollars in millions):\n\n||**2025**|**Change**|**2024**|**Change**|**2023**|\n|---|---|---|---|---|---|\n|Americas|$ 178,353|7 %|$ 167,045|3 %|$ 162,560|\n|Europe|111,032|10%|101,328|7%|94,294|\n|Greater China|64,377|(4)%|66,952|(8)%|72,559|\n|Japan|28,703|15%|25,052|3%|24,257|\n|Rest of Asia Pacific|33,696|10%|30,658|4%|29,615|\n|Total net sales|$ 416,161|6 %|$ 391,035|2 %|$ 383,285|"
+  },
+  {
+   "type": "filing",
+   "citation": "AAPL FY2025 10-K, p.48",
+   "doc": "AAPL_FY2025_10-K",
+   "page": 48,
+   "section": "Note 13 \u2013 Segment Information and Geographic Data",
+   "chunk_id": "AAPL_FY2025_10-K#p56.c4",
+   "parent_id": "AAPL_FY2025_10-K#p56",
+   "is_table": true,
+   "text": "|||||**2023**||||\n|---|---|---|---|---|---|---|---|\n||**Americas**|**Europe**|**Greater** **China**|**Japan**|**Rest of** **Asia Pacific**|**Corporate**|**Total**|\n|Net sales|$ 162,560|$ 94,294|$ 72,559|$ 24,257|$ 29,615|$ \u2014|$ 383,285|\n|Cost of sales|(92,394)|(54,101)|(39,787)|(11,542)|(16,313)|\u2014|(214,137)|\n|Research and development|\u2014|\u2014|\u2014|\u2014|\u2014|(29,915)|(29,915)|\n|Selling and marketing|(9,658)|(4,095)|(2,444)|(827)|(1,236)|\u2014|(18,260)|\n|General and administrative|\u2014|\u2014|\u2014|\u2014|\u2014|(6,672)|(6,672)|\n|Operating income/(loss)|$ 60,508|$ 36,098|$ 30,328|$ 11,888|$ 12,066|$ (36,587)|$ 114,301|"
+  },
+  {
+   "type": "filing",
+   "citation": "AAPL FY2025 10-K, p.48",
+   "doc": "AAPL_FY2025_10-K",
+   "page": 48,
+   "section": "Note 13 \u2013 Segment Information and Geographic Data",
+   "chunk_id": "AAPL_FY2025_10-K#p56.c3",
+   "parent_id": "AAPL_FY2025_10-K#p56",
+   "is_table": true,
+   "text": "|||||**2024**||||\n|---|---|---|---|---|---|---|---|\n||**Americas**|**Europe**|**Greater** **China**|**Japan**|**Rest of** **Asia Pacific**|**Corporate**|**Total**|\n|Net sales|$ 167,045|$ 101,328|$ 66,952|$ 25,052|$ 30,658|$ \u2014|$ 391,035|\n|Cost of sales|(89,587)|(55,197)|(37,519)|(11,744)|(16,305)|\u2014|(210,352)|\n|Research and development|\u2014|\u2014|\u2014|\u2014|\u2014|(31,370)|(31,370)|\n|Selling and marketing|(9,802)|(4,341)|(2,351)|(854)|(1,291)|\u2014|(18,639)|\n|General and administrative|\u2014|\u2014|\u2014|\u2014|\u2014|(7,458)|(7,458)|\n|Operating income/(loss)|$ 67,656|$ 41,790|$ 27,082|$ 12,454|$ 13,062|$ (38,828)|$ 123,216|"
+  },
+  {
+   "type": "filing",
+   "citation": "AAPL FY2025 10-K, p.48",
+   "doc": "AAPL_FY2025_10-K",
+   "page": 48,
+   "section": "Note 13 \u2013 Segment Information and Geographic Data",
+   "chunk_id": "AAPL_FY2025_10-K#p56.c2",
+   "parent_id": "AAPL_FY2025_10-K#p56",
+   "is_table": true,
+   "text": "The following tables show information by reportable segment for 2025, 2024 and 2023 (in millions):\n\n|||||**2025**||||\n|---|---|---|---|---|---|---|---|\n||**Americas**|**Europe**|**Greater** **China**|**Japan**|**Rest of** **Asia Pacific**|**Corporate**|**Total**|\n|Net sales|$ 178,353|$ 111,032|$ 64,377|$ 28,703|$ 33,696|$ \u2014|$ 416,161|\n|Cost of sales|(95,699)|(58,617)|(35,141)|(13,779)|(17,724)|\u2014|(220,960)|\n|Research and development|\u2014|\u2014|\u2014|\u2014|\u2014|(34,550)|(34,550)|\n|Selling and marketing|(10,174)|(4,676)|(2,319)|(969)|(1,386)|\u2014|(19,524)|\n|General and administrative|\u2014|\u2014|\u2014|\u2014|\u2014|(8,077)|(8,077)|\n|Operating income/(loss)|$ 72,480|$ 47,739|$ 26,917|$ 13,955|$ 14,586|$ (42,627)|$ 133,050|"
+  },
+  {
+   "type": "filing",
+   "citation": "AAPL FY2025 10-K, p.48",
+   "doc": "AAPL_FY2025_10-K",
+   "page": 48,
+   "section": "Note 13 \u2013 Segment Information and Geographic Data",
+   "chunk_id": "AAPL_FY2025_10-K#p56.c5",
+   "parent_id": "AAPL_FY2025_10-K#p56",
+   "is_table": true,
+   "text": "The following tables show net sales for 2025, 2024 and 2023 and long-lived assets as of September 27, 2025 and September 28, 2024 for countries that individually accounted for 10% or more of the respective totals, as well as aggregate amounts for the remaining countries (in millions):\n\n||**2025**|**2024**|**2023**|\n|---|---|---|---|\n|Net sales:||||\n|U.S.|$ 151,790|$ 142,196|$ 138,573|\n|China (1)|64,377|66,952|72,559|\n|Other countries|199,994|181,887|172,153|\n|Total net sales|$ 416,161|$ 391,035|$ 383,285|"
+  }
+ ],
+ "trace": [
+  {
+   "type": "llm",
+   "ms": 1791,
+   "finish": "tool_calls"
+  },
+  {
+   "type": "tool",
+   "tool": "query_sql",
+   "args": "{\"sql\": \"SELECT fiscal_year, period_end, revenue FROM geographic_revenue WHERE company_ticker = 'AAPL' AND region = 'Greater China' AND fiscal_year IN (2024, 2025) ORDER BY fiscal_year\"}",
+   "ms": 1377,
+   "result": "| fiscal_year | period_end | revenue |\n|---|---|---|\n| 2024 | 2024-09-28 | 66,952,000,000 |\n| 2025 | 2025-09-27 | 64,377,000,000 |",
+   "meta": {
+    "type": "sql",
+    "sql": "SELECT fiscal_year, period_end, revenue FROM geographic_revenue WHERE company_ticker = 'AAPL' AND region = 'Greater China' AND fiscal_year IN (2024, 2025) ORDER BY fiscal_year",
+    "rows": 2
+   },
+   "citations": []
+  },
+  {
+   "type": "tool",
+   "tool": "search_filings",
+   "args": "{\"query\": \"Greater China net sales decrease explanation year-over-year\", \"ticker\": \"AAPL\", \"fiscal_year\": 2025}",
+   "ms": 1377,
+   "result": "[1] AAPL FY2025 10-K, p.24 | Item 7. Management\u2019s Discussion and Analysis of Financial Condition and Results of Operations > Greater China | parent_id=AAPL_FY2025_10-K#p36\nGreater China net sales decreased during 2025 compared to 2024 primarily due to lower net sales of iPhone, partially offset by higher net sales of Mac.\n\n---\n\n[2] AAPL FY2025 10-K, p.24 | Item 7. Management\u2019s Discussion and Analysis of Financial Condition and Results of Operations > Segment Operating Performance | parent_id=AAPL_FY2025_10-K#p36\nThe following table shows net sales by reportable segment for 2025, 2024 and 2023 (dollars in millions):\n\n||**2025**|**Change**|**2024**|**Change**|**2023**|\n|---|---|---|---|---|---|\n|Americas|$ 178,353|7 %|$ 167,045|3 %|$ 162,560|\n|Europe|111,032|10%|101,328|7%|94,294|\n|Greater China|64,377|(4)%|66,952|(8)%|72,559|\n|Japan|28,703|15%|25,052|3%|24,257|\n|Rest of Asia Pacific|33,696|10%|30,658|4%|29,615|\n|Total net sales|$ 416,161|6 %|$ 391,035|2 %|$ 383,285|\n\n---\n\n[3] AAPL FY2025 10-K, p.48 | Item 8. Financial Statements and Supplementary Data > Note 13 \u2013 Segment Information and Geographic Data | parent_id=AAPL_FY2025_10-K#p56\n|||||**2023**||||\n|---|---|---|---|---|---|---|---|\n||**Americas**|**Europe**|**Greater** **China**|**Japan**|**Rest of** **Asia Pacific**|**Corporate**|**Total**|\n|Net sales|$ 162,560|$ 94,294|$ 72,559|$ 24,257|$ 29,615|$ \u2014|$ 383,285|\n|Cost of sales|(92,394)|(54,101)|(39,787)|(11,542)|(16,313)|\u2014|(214,137)|\n|Research and development|\u2014|\u2014|\u2014|\u2014|\u2014|(29,915)|(29,915)|\n|Selling and marketing|(9,658)|(4,095)|(2,444)|(827)|(1,236)|\u2014|(18,260)|\n|General and administrative|\u2014|\u2014|\u2014|\u2014|\u2014|(6,672)|(6,672)|\n|Operating income/(loss)|$ 60,508|$ 36,098|$ 30,328|$ 11,888|$ 12,066|$ (36,587)|$ 114,301|\n\n---\n\n[4] AAPL FY2025 10-K, p.48 | Item 8. Financial Statements and Supplementary Data > Note 13 \u2013 Segment Information and Geographic Data | parent_id=AAPL_FY2025_10-K#p56\n|||||**2024**||||\n|---|---|---|---|---|---|---|---|\n||**Americas**|**Europe**|**Greater** **China**|**Japan**|**Rest of** **Asia Pacific**|**Corporate**|**Total**|\n|Net sales|$ 167,045|$ 101,328|$ 66,952|$ 25,052|$ 30,658|$ \u2014|$ 391,035|\n|Cost of sales|(89,587)|(55,197)|(37,519)|(11,744)|(16,305)|\u2014|(210,352)|\n|Research and development|\u2014|\u2014|\u2014|\u2014|\u2014|(31,370)|(31,370)|\n|Selling and marketing|(9,802)|(4,341)|(2,351)|(854)|(1,291)|\u2014|(18,639)|\n|General and administrative|\u2014|\u2014|\u2014|\u2014|\u2014|(7,458)|(7,458)|\n|Operating income/(loss)|$ 67,656|$ 41,790|$ 27,082|$ 12,454|$ 13,062|$ (38,828)|$ 123,216|\n\n---\n\n[5] AAPL FY2025 10-K, p.48 | Item 8. Financial Statements and Supplementary Data > Note 13 \u2013 Segment Information and Geographic Data | parent_id=AAPL_FY2025_10-K#p56\nThe following tables show information by reportable segment for 2025, 2024 and 2023 (in millions):\n\n|||||**2025**||||\n|---|---|---|---|---|---|---|---|\n||**Americas**|**Europe**|**Greater** **China**|**Japan**|**Rest of** **Asia Pacific**|**Corporate**|**Total**|\n|Net sales|$ 178,353|$ 111,032|$ 64,377|$ 28,703|$ 33,696|$ \u2014|$ 416,161|\n|Cost of sales|(95,699)|(58,617)|(35,141)|(13,779)|(17,724)|\u2014|(220,960)|\n|Research and development|\u2014|\u2014|\u2014|\u2014|\u2014|(34,550)|(34,550)|\n|Selling and marketing|(10,174)|(4,676)|(2,319)|(969)|(1,386)|\u2014|(19,524)|\n|General and administrative|\u2014|\u2014|\u2014|\u2014|\u2014|(8,077)|(8,077)|\n|Operating income/(loss)|$ 72,480|$ 47,739|$ 26,917|$ 13,955|$ 14,586|$ (42,627)|$ 133,050|\n\n---\n\n[6] AAPL FY2025 10-K, p.48 | Item 8. Financial Statements and Supplementary Data > Note 13 \u2013 Segment Information and Geographic Data | parent_id=AAPL_FY2025_10-K#p56\nThe following tables show net sales for 2025, 2024 and 2023 and long-lived assets as of September 27, 2025 and September 28, 2024 for countries that individually accounted for 10% or more of the respective totals, as well as aggregate amounts for the remaining countries (in millions):\n\n||**2025**|**2024**|**2023**|\n|---|---|---|---|\n|Net sales:||||\n|U.S.|$ 151,790|$ 142,196|$ 138,573|\n|China (1)|64,377|66,952|72,559|\n|Other countries|199,994|181,887|172,153|\n|Total net sales|$ 416,161|$ 391,035|$ 383,285|",
+   "meta": {
+    "type": "search",
+    "query": "Greater China net sales decrease explanation year-over-year"
+   },
+   "citations": [
+    "AAPL FY2025 10-K, p.24",
+    "AAPL FY2025 10-K, p.24",
+    "AAPL FY2025 10-K, p.48",
+    "AAPL FY2025 10-K, p.48",
+    "AAPL FY2025 10-K, p.48",
+    "AAPL FY2025 10-K, p.48"
+   ]
+  },
+  {
+   "type": "llm",
+   "ms": 1841,
+   "finish": "tool_calls"
+  },
+  {
+   "type": "tool",
+   "tool": "calculate",
+   "args": "{\"expressions\": {\"change_usd\": \"64377000000 - 66952000000\", \"change_pct\": \"(64377000000 - 66952000000) / 66952000000 * 100\"}}",
+   "ms": 0,
+   "result": "change_usd = -2,575,000,000.00\nchange_pct = -3.846",
+   "meta": {
+    "type": "calc",
+    "expressions": {
+     "change_usd": "64377000000 - 66952000000",
+     "change_pct": "(64377000000 - 66952000000) / 66952000000 * 100"
+    },
+    "results": {
+     "change_usd": -2575000000,
+     "change_pct": -3.8460389532799613
+    }
+   },
+   "citations": []
+  },
+  {
+   "type": "llm",
+   "ms": 3419,
+   "finish": "stop"
+  }
+ ],
+ "usage": {
+  "prompt_tokens": 10431,
+  "cached_tokens": 8308,
+  "completion_tokens": 719,
+  "llm_calls": 3,
+  "tool_calls": 3,
+  "cost_usd": 0.008296,
+  "latency_ms": 8430
+ },
+ "model": "accounts/fireworks/models/glm-5p3",
+ "prompt": "v1",
+ "question": "How did Apple's Greater China revenue change between fiscal year 2024 and fiscal year 2025, and does the 10-K filing explain why?"
+}

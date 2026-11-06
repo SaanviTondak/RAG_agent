@@ -12,6 +12,7 @@ import re
 from functools import lru_cache
 
 from app.config import INDEX_DIR, TICKERS
+from app.evidence import CITE_RE, SQL_CITE_RE
 from app.llm import cached_tokens, chat, cost_usd
 from app.numbers import (ABBREVIATIONS, body, number_matches, numbers_agree, parse_numbers,  # noqa: F401
                          ungrounded_numbers)
@@ -215,8 +216,6 @@ def gold_page_recall(result: dict, gold_pages: list[dict]) -> dict | None:
     return {"hit": bool(hits), "recall": round(len(hits) / len(gold_pages), 3), "n_gold": len(gold_pages)}
 
 
-CITE_RE = re.compile(r"\b(AAPL|MSFT|GOOGL) FY(\d{4}) 10-K,?\s*pp?\.\s*(\d+)(?:\s*[-–]\s*(\d+))?")
-SQL_CITE_RE = re.compile(r"\[SQL:\s*([^\]]+)\]", re.I)
 
 
 def citation_check(result: dict) -> dict:

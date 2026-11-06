@@ -15,12 +15,23 @@ client = OpenAI(api_key=FIREWORKS_API_KEY, base_url=FIREWORKS_BASE_URL, max_retr
 
 RETRIES = 4
 
+
+class ProviderError(RuntimeError):
+    """Fireworks kept failing (rate limits, server errors, timeouts) after all retries."""
+
+
+class DeadlineExceeded(TimeoutError):
+    """The caller's time budget ran out before Fireworks answered."""
+
+
 #retries when Fireworks is rate-limited or has a temporary server error, 
 # with increasing waits, and fails immediately on mistakes like a bad request.
 
 
-def _retry(fn):
+def _retry(fn, deadline: float | None = None):
     for attempt in range(RETRIES):
+        if deadline is not None and time.time() >= deadline:
+            raise DeadlineExceeded("time budget exhausted waiting for Fireworks")
         try:
             return fn()
         except (RateLimitError, APIConnectionError, requests.ConnectionError, requests.Timeout):
@@ -32,12 +43,22 @@ def _retry(fn):
             if e.response is not None and e.response.status_code < 500 and e.response.status_code != 429:
                 raise
         if attempt == RETRIES - 1:
-            raise RuntimeError("Fireworks request failed after retries")
-        time.sleep(2**attempt)
+            raise ProviderError("Fireworks request failed after retries")
+        wait = 2**attempt
+        if deadline is not None:
+            wait = min(wait, max(0.0, deadline - time.time()))
+        time.sleep(wait)
 
 
-def chat(**kwargs):
-    return _retry(lambda: client.chat.completions.create(**kwargs))
+def chat(deadline: float | None = None, **kwargs):
+    """Chat completion. With a deadline (epoch seconds), each attempt may only use the time left."""
+
+    def call():
+        if deadline is not None:
+            kwargs["timeout"] = max(1.0, deadline - time.time())
+        return client.chat.completions.create(**kwargs)
+
+    return _retry(call, deadline)
 
 
 def cached_tokens(usage) -> int:

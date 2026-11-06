@@ -7,7 +7,7 @@ Guardrails around the LLM's own routing:
   touched the filings, or a numeric question never touched SQL or a financial table,
 - grounding nudge (optional): send it back once if a percentage in the draft appears in no tool result
   (usually head arithmetic),
-- a tool-call budget, after which the model must answer from the evidence it has.
+- a tool-call budget and a time budget, after which the model must answer from the evidence it has.
 
 CLI: python -m app.agent "question" [--model ID] [--no-rerank]
 """
@@ -20,8 +20,8 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
 import app.retrieval
-from app.config import (CHAT_MODEL, GROUNDING_NUDGE, MAX_TOKENS, MAX_TOOL_CALLS, MAX_TURNS, PROMPT_VERSION, SEED,
-                        TEMPERATURE, TRACE_DIR)
+from app.config import (AGENT_TIME_BUDGET_S, CHAT_MODEL, GROUNDING_NUDGE, MAX_TOKENS, MAX_TOOL_CALLS, MAX_TURNS,
+                        PROMPT_VERSION, SEED, TEMPERATURE, TOOL_CUTOFF_S, TRACE_DIR)
 from app.llm import cached_tokens, chat, cost_usd
 from app.numbers import ungrounded_numbers
 from app.prompts import SYSTEM_PROMPTS
@@ -49,7 +49,7 @@ NUMERIC_NUDGE = ("Before answering: the question involves figures, but you have 
 GROUNDING_NUDGE_TEXT = ("Before answering: these percentages in your draft do not appear in any tool result: {nums}. "
                         "Compute each one with calculate (or SQL) and use the tool's result, or remove it. Then give "
                         "the full answer again.")
-FALLBACK_PROMPT = ("Tool budget reached. Answer now using only the evidence gathered above, in the required format, "
+FALLBACK_PROMPT = ("Tool or time budget reached. Answer now using only the evidence gathered above, in the required format, "
                    "and state briefly what could not be verified.")
 THINK_RE = re.compile(r"<think>.*?</think>", re.S)
 
@@ -108,6 +108,7 @@ def run(question: str, history: list[dict] | None = None, model: str = CHAT_MODE
     if rerank is not None:
         app.retrieval.rerank_enabled = rerank
     t0 = time.time()
+    deadline = t0 + AGENT_TIME_BUDGET_S
     messages = [{"role": "system", "content": SYSTEM_PROMPTS[prompt]}, *(history or []),
                 {"role": "user", "content": question + hints(question)}]
     trace, sources, nudges = [], {}, set()
@@ -123,7 +124,7 @@ def run(question: str, history: list[dict] | None = None, model: str = CHAT_MODE
     def call_llm(tool_choice: str):
         t = time.time()
         resp = chat(model=model, messages=messages, tools=TOOL_SCHEMAS, tool_choice=tool_choice,
-                    temperature=TEMPERATURE, seed=SEED, max_tokens=MAX_TOKENS)
+                    temperature=TEMPERATURE, seed=SEED, max_tokens=MAX_TOKENS, deadline=deadline)
         usage["llm_calls"] += 1
         if resp.usage:
             usage["prompt_tokens"] += resp.usage.prompt_tokens
@@ -133,7 +134,7 @@ def run(question: str, history: list[dict] | None = None, model: str = CHAT_MODE
         return resp.choices[0].message
 
     for turn in range(MAX_TURNS):
-        if usage["tool_calls"] >= MAX_TOOL_CALLS:
+        if usage["tool_calls"] >= MAX_TOOL_CALLS or time.time() - t0 >= TOOL_CUTOFF_S:
             break
         msg = call_llm("required" if turn == 0 else "auto")
         if msg.tool_calls:
@@ -160,7 +161,7 @@ def run(question: str, history: list[dict] | None = None, model: str = CHAT_MODE
         content = THINK_RE.sub("", msg.content or "").strip()
         nudge = _nudge(question, evidence, nudges, content, [t["result"] for t in trace if t["type"] == "tool"],
                        grounding_nudge)
-        if nudge and usage["tool_calls"] < MAX_TOOL_CALLS:
+        if nudge and usage["tool_calls"] < MAX_TOOL_CALLS and time.time() - t0 < TOOL_CUTOFF_S:
             messages += [{"role": "assistant", "content": content}, {"role": "user", "content": nudge}]
             emit({"type": "nudge", "text": nudge})
             continue

@@ -6,3 +6,4 @@ data/index/
 data/xbrl_raw/
 traces/
 .DS_Store
+.playwright-mcp/

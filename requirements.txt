@@ -5,3 +5,6 @@ pymupdf==1.28.2
 pymupdf4llm==1.28.2  # 2.x is an empty shim that expects pymupdf 2.x
 rank_bm25==0.2.2
 python-dotenv
+fastapi==0.115.12
+uvicorn==0.34.2
+httpx==0.28.1  # tests only (FastAPI TestClient)
