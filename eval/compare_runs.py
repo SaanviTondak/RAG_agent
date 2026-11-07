@@ -16,14 +16,15 @@ from concurrent.futures import ThreadPoolExecutor
 
 from app.config import JUDGE_MODEL
 from eval.graders import body, judge_json
-from eval.run_eval import RESULTS_DIR, load_set, percentile, read_jsonl, short
+from eval.run_eval import RESULTS_DIR, gold_ratio, load_set, percentile, read_jsonl, short
 
 PREFER_SYSTEM = """You compare two answers from a financial research assistant to the same question. The reader is an
 analyst who needs the answer quickly and must be able to trust it. A reference answer is given.
 Decide in this order of priority:
 1. Correctness and completeness against the reference: an answer with a wrong or missing key fact loses.
 2. How quickly the reader finds the answer: is it stated up front, or buried?
-3. Concision: no filler or repetition. Do not prefer an answer just because it is longer or shorter.
+3. Concise but well-supported (the customer's stated preference): the key facts with their supporting figures
+   and sources, without filler, repetition, or detail the question did not ask for.
 Return JSON: {"winner": "A" | "B" | "tie", "reason": "<one sentence>"}"""
 
 
@@ -97,6 +98,8 @@ def main() -> None:
             "Words: median / mean": f"{percentile([s['words'] for s in ss], .5):.0f} / "
                                     f"{statistics.mean(s['words'] for s in ss):.0f}",
             "Opening paragraph words: median": f"{percentile([s['lead']['words'] for s in ss], .5):.0f}",
+            "Words ÷ gold words (llm_judge, median)":
+                f"{percentile([x for r, s in zip(rows, ss) if (x := gold_ratio(r[0], s)) is not None], .5):.1f}x",
             "Latency p50 / p95": f"{percentile([r['usage']['latency_ms'] / 1000 for r in res], .5):.1f}s / "
                                  f"{percentile([r['usage']['latency_ms'] / 1000 for r in res], .95):.1f}s",
             "Agent cost per answer": f"${statistics.mean(r['usage']['cost_usd'] for r in res):.4f}",

@@ -1,0 +1,16 @@
+{
+  "set": "tune",
+  "ids": null,
+  "model": "accounts/fireworks/models/glm-5p3",
+  "judge": "accounts/fireworks/models/deepseek-v4p1-flash",
+  "runs": 1,
+  "rerank": true,
+  "prompt": "v1r",
+  "system": "agent",
+  "grounding_nudge": true,
+  "planner": "off",
+  "editor": false,
+  "fact_split_usd": 0.0,
+  "graded_at": "2026-11-06 23:48",
+  "derived_from": "20261106-2313_tune_glm-5p3_v1r_gn_ed_final_cand"
+}

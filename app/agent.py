@@ -7,7 +7,11 @@ Guardrails around the LLM's own routing:
   touched the filings, or a numeric question never touched SQL or a financial table,
 - grounding nudge (optional): send it back once if a percentage in the draft appears in no tool result
   (usually head arithmetic),
-- a tool-call budget and a time budget, after which the model must answer from the evidence it has.
+- planning (optional: "auto" plans multi-part questions only, "on" plans every question, e.g. the UI's "Plan first"
+  toggle): one call writes a short plan that is shown to the user, appended to the question, and used by the
+  coverage nudges instead of the regexes,
+- a tool-call budget and a time budget, after which the model must answer from the evidence it has,
+- answer editor (optional): one call shortens a long final answer; checks keep the draft if anything looks off.
 
 CLI: python -m app.agent "question" [--model ID] [--no-rerank]
 """
@@ -20,10 +24,12 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
 import app.retrieval
-from app.config import (AGENT_TIME_BUDGET_S, CHAT_MODEL, GROUNDING_NUDGE, MAX_TOKENS, MAX_TOOL_CALLS, MAX_TURNS,
-                        PROMPT_VERSION, SEED, TEMPERATURE, TOOL_CUTOFF_S, TRACE_DIR)
-from app.llm import cached_tokens, chat, cost_usd
+from app.config import (AGENT_TIME_BUDGET_S, ANSWER_EDITOR, CHAT_MODEL, GROUNDING_NUDGE, MAX_TOKENS, MAX_TOOL_CALLS,
+                        MAX_TURNS, PLANNER, PROMPT_VERSION, SEED, TEMPERATURE, TOOL_CUTOFF_S, TRACE_DIR)
+from app.editor import edit
+from app.llm import ProviderError, cached_tokens, chat, cost_usd
 from app.numbers import ungrounded_numbers
+from app.planner import make_plan, needs_plan, plan_text, required_sources
 from app.prompts import SYSTEM_PROMPTS
 from app.tools import TOOL_SCHEMAS, run_tool
 
@@ -69,11 +75,14 @@ def hints(question: str) -> str:
 
 
 def _nudge(question: str, evidence: dict, sent: set, draft: str = "", tool_texts: list[str] | None = None,
-           grounding: bool = False) -> str | None:
-    if "filings" not in sent and not evidence["filings"] and NARRATIVE_RE.search(question):
+           grounding: bool = False, plan: list[dict] | None = None) -> str | None:
+    need = required_sources(plan) if plan else None  # with a plan, it decides which sources are required
+    wants_filings = "filings" in need if plan else bool(NARRATIVE_RE.search(question))
+    wants_figures = "database" in need if plan else bool(NUMERIC_RE.search(question))
+    if "filings" not in sent and not evidence["filings"] and wants_filings:
         sent.add("filings")
         return FILINGS_NUDGE
-    if "numeric" not in sent and not (evidence["sql"] or evidence["table"]) and NUMERIC_RE.search(question):
+    if "numeric" not in sent and not (evidence["sql"] or evidence["table"]) and wants_figures:
         sent.add("numeric")
         return NUMERIC_NUDGE
     if grounding and "grounding" not in sent:
@@ -103,33 +112,49 @@ def _record_evidence(meta: dict, evidence: dict, sources: dict) -> None:
 
 
 def run(question: str, history: list[dict] | None = None, model: str = CHAT_MODEL, rerank: bool | None = None,
-        on_step=None, prompt: str = PROMPT_VERSION, grounding_nudge: bool = GROUNDING_NUDGE) -> dict:
+        on_step=None, prompt: str = PROMPT_VERSION, grounding_nudge: bool = GROUNDING_NUDGE,
+        planner: str = PLANNER, editor: bool = ANSWER_EDITOR) -> dict:
     """Answer one question. `history` is prior chat turns ({role, content}) for UI follow-ups."""
     if rerank is not None:
         app.retrieval.rerank_enabled = rerank
     t0 = time.time()
     deadline = t0 + AGENT_TIME_BUDGET_S
-    messages = [{"role": "system", "content": SYSTEM_PROMPTS[prompt]}, *(history or []),
-                {"role": "user", "content": question + hints(question)}]
     trace, sources, nudges = [], {}, set()
     evidence = {"sql": False, "filings": False, "table": False}
     usage = {"prompt_tokens": 0, "cached_tokens": 0, "completion_tokens": 0, "llm_calls": 0, "tool_calls": 0}
-    answer = None
+    answer, plan, draft = None, None, None
 
     def emit(step: dict) -> None:
         trace.append(step)
         if on_step:
             on_step(step)
 
+    def count(u) -> None:
+        usage["llm_calls"] += 1
+        if u:
+            usage["prompt_tokens"] += u.prompt_tokens
+            usage["cached_tokens"] += cached_tokens(u)
+            usage["completion_tokens"] += u.completion_tokens
+
+    user_msg = question + hints(question)
+    if planner == "on" or (planner == "auto" and needs_plan(question)):
+        t = time.time()
+        try:
+            plan, u = make_plan(question, model, history, deadline)
+            count(u)
+        except ProviderError:  # planning is optional: answer without a plan rather than fail
+            plan = None
+        if plan:
+            emit({"type": "plan", "steps": plan, "ms": int((time.time() - t) * 1000)})
+            user_msg += "\n\n[Plan for this question; follow it, adapting if the results require:\n" + plan_text(plan) + "]"
+    messages = [{"role": "system", "content": SYSTEM_PROMPTS[prompt]}, *(history or []),
+                {"role": "user", "content": user_msg}]
+
     def call_llm(tool_choice: str):
         t = time.time()
         resp = chat(model=model, messages=messages, tools=TOOL_SCHEMAS, tool_choice=tool_choice,
                     temperature=TEMPERATURE, seed=SEED, max_tokens=MAX_TOKENS, deadline=deadline)
-        usage["llm_calls"] += 1
-        if resp.usage:
-            usage["prompt_tokens"] += resp.usage.prompt_tokens
-            usage["cached_tokens"] += cached_tokens(resp.usage)
-            usage["completion_tokens"] += resp.usage.completion_tokens
+        count(resp.usage)
         emit({"type": "llm", "ms": int((time.time() - t) * 1000), "finish": resp.choices[0].finish_reason})
         return resp.choices[0].message
 
@@ -160,7 +185,7 @@ def run(question: str, history: list[dict] | None = None, model: str = CHAT_MODE
 
         content = THINK_RE.sub("", msg.content or "").strip()
         nudge = _nudge(question, evidence, nudges, content, [t["result"] for t in trace if t["type"] == "tool"],
-                       grounding_nudge)
+                       grounding_nudge, plan)
         if nudge and usage["tool_calls"] < MAX_TOOL_CALLS and time.time() - t0 < TOOL_CUTOFF_S:
             messages += [{"role": "assistant", "content": content}, {"role": "user", "content": nudge}]
             emit({"type": "nudge", "text": nudge})
@@ -173,11 +198,22 @@ def run(question: str, history: list[dict] | None = None, model: str = CHAT_MODE
         emit({"type": "fallback"})
         answer = THINK_RE.sub("", call_llm("none").content or "").strip() or "No answer could be produced."
 
+    if editor:
+        ed = edit(question, answer, model, deadline)
+        if ed:
+            if ed["usage"]:
+                count(ed["usage"])
+            emit({"type": "edit", "ms": ed["ms"], "fallback": ed["fallback"], "points": ed["points"],
+                  "words": [len(answer.split()), len(ed["answer"].split())]})
+            if not ed["fallback"]:
+                draft, answer = answer, ed["answer"]
+
     usage["cost_usd"] = round(cost_usd(model, usage["prompt_tokens"], usage["completion_tokens"],
                                        usage["cached_tokens"]), 6)
     result = {"question": question, "answer": answer, "sources": list(sources.values()), "trace": trace,
               "usage": {**usage, "latency_ms": int((time.time() - t0) * 1000)}, "model": model,
-              "prompt": prompt, "grounding_nudge": grounding_nudge}
+              "prompt": prompt, "grounding_nudge": grounding_nudge, "planner": planner, "plan": plan,
+              "editor": editor, "draft": draft}
     _save_trace(result)
     return result
 
@@ -201,6 +237,8 @@ def main() -> None:
             print(f"  -> {step['tool']} {step['args'][:160]} ({step['ms']} ms)")
         elif step["type"] in ("nudge", "fallback"):
             print(f"  !! {step['type']}")
+        elif step["type"] == "edit":
+            print(f"  edit {step['words'][0]} -> {step['words'][1]} words {step['fallback'] or ''}")
 
     r = run(a.question, model=a.model, rerank=False if a.no_rerank else None, on_step=show)
     u = r["usage"]

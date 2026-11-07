@@ -68,15 +68,69 @@ _UNITS_AND_SOURCES = """- Money in billions with one decimal ("$416.2 billion"),
 """
 
 # v1: Day 2 format. v2: answer up front, bold-labelled bullets, filler removed, no length cap (rejected: lost facts,
-# longer answers). v3: v1 + one line asking the opening paragraph to answer every part. See eval/compare_runs.py.
+# longer answers). v3: v1 + one line asking the opening paragraph to answer every part (rejected: q_006 lost facts).
+# v4: v1 + scope rules (answer only what is asked, one fact per bullet, lists complete, plan-ordered parts); half the
+# length but "answer only what is asked" narrowed qualitative answers (q_006 0/3, q_025 0/3). v5: v4 with that rule
+# replaced by "no unrequested figure breakdowns" + "cover every point the filing makes, one line each".
+# v6: compact bullets + tables, no length or scope limits. v1c: v1 + short bullets. (Conciseness trial, 2026-11-06.)
 ANSWER_FORMATS = {
     "v1": """## Answer format
+- First sentence: the direct answer (the entity and/or figure).
+- Then a concise breakdown, typically 2-6 bullets, with the supporting figures and what the filing says.
+""",
+    "v1r": """## Risk-factor questions
+- When the question asks which risks a filing discloses (all risks of a kind), first call read_section with ticker, fiscal_year and item="1A" to read the Risk Factors section, then read any sections it lists as not included whose headings are relevant. Do not rely on search snippets alone: related risks are often spread across several subsections.
+
+## Answer format
+- First sentence: the direct answer (the entity and/or figure).
+- Then a concise breakdown, typically 2-6 bullets, with the supporting figures and what the filing says.
+""",
+    "v1g": """## Risk-factor questions
+- When the question asks which risks a filing discloses (all risks of a kind), first call read_section with ticker, fiscal_year and item="1A" to read the Risk Factors section, then read any sections it lists as not included whose headings are relevant. Do not rely on search snippets alone: related risks are often spread across several subsections.
+
+## Stay within the evidence
+- State only what the tool results show. Do not add characterisations, judgements or background the evidence does not state (e.g. "a fortress balance sheet", "its strategic crown jewel"); when a characterisation helps, use the filing's own words.
+- Every comparison or proportion ("half", "twice", "a third", "the largest", "most") must come from a tool result or a calculate call. Otherwise give the figures and let them speak.
+- Do not generalise from some items to all ("every region", "all segments") unless the evidence covers each one.
+
+## Answer format
 - First sentence: the direct answer (the entity and/or figure).
 - Then a concise breakdown, typically 2-6 bullets, with the supporting figures and what the filing says.
 """,
     "v3": """## Answer format
 - First sentence: the direct answer (the entity and/or figure). The opening paragraph (1-3 sentences) answers every part of the question, including the main reason for "why" or "what drove" questions.
 - Then a concise breakdown, typically 2-6 bullets, with the supporting figures and what the filing says.
+""",
+    "v4": """## Answer format
+- Answer exactly what is asked, nothing more. Do not add breakdowns, drivers, percentage shares, history or background the question did not ask for. Exception: a short caveat when leaving it out would mislead (different fiscal-year ends, restated figures, hedging, data not available).
+- First sentence: the direct answer (the entity and/or figure). For a simple lookup, add at most one line of context.
+- "Which company" or comparison questions: the answer first, then one line per compared company with its key figure.
+- Lists the question asks for (risks, components, segments): every item, one line each. Never drop an item to be brief.
+- Explanations ("why", "what drove"): the reason as the filing states it, in one or two sentences, with the supporting figure.
+- If a plan is given, open with 1-3 sentences answering the whole question, then a short part per sub-question in plan order, each a few one-line bullets at most.
+- One fact per bullet. No long paragraphs and no chains of several figures in one sentence.
+""",
+    "v5": """## Answer format
+- Do not add figure breakdowns the question did not ask for (e.g. segment splits, percentage shares of a total, extra years). Add a short caveat only when leaving it out would mislead (different fiscal-year ends, restated figures, hedging, data not available).
+- For questions about what a filing says (risks, strategy, drivers, definitions, descriptions), cover every distinct point the filing makes, one line each. Brevity applies to each point, never to the number of points.
+- First sentence: the direct answer (the entity and/or figure). For a simple lookup, add at most one line of context.
+- "Which company" or comparison questions: the answer first, then one line per compared company with its key figure.
+- Explanations ("why", "what drove"): the reason as the filing states it, with the supporting figure.
+- If a plan is given, open with 1-3 sentences answering the whole question, then a short part per sub-question in plan order.
+- One fact per bullet. No long paragraphs and no chains of several figures in one sentence.
+""",
+    "v6": """## Answer format
+- First sentence: the direct answer (the entity and/or figure).
+- Then compact bullets: one bullet per distinct point (each risk, driver, list item or figure the answer rests on),
+  each a single line that names the specific thing. Fold closely related details into the same bullet instead of
+  adding sentences. Never drop a point to be brief.
+- Figures compared across companies or years: a small markdown table instead of prose.
+- State each figure once. No introduction restating the question, no description of your steps, no closing summary.
+""",
+    "v1c": """## Answer format
+- First sentence: the direct answer (the entity and/or figure).
+- Then a concise breakdown, typically 2-6 bullets, with the supporting figures and what the filing says.
+- Keep each bullet to one or two short sentences: name the point and its key figure; do not paraphrase the filing at length.
 """,
     "v2": """## Answer format
 - Open with a short paragraph (1-3 sentences) that answers every part of the question: the entity and/or key figures, and for "why" or "what drove" questions the main reason in a few words. A reader who stops after this paragraph should have the full answer.

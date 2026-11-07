@@ -78,6 +78,18 @@ CASES = [
     {"id": "q_011", "kind": "harmless: runners-up in opening", "expect": "pass",
      "replace": [("at 15.1% (FY2024 → FY2025).", "at 15.1% (FY2024 → FY2025), narrowly ahead of Microsoft (14.9%) "
                   "and well ahead of Apple (6.4%).")]},
+    # numeric questions, added with the headline-figure judge (outside review: a wrong headline passed when the right
+    # number appeared elsewhere as a comparison)
+    {"id": "q_001", "kind": "wrong headline, right number as comparison", "expect": "fail",
+     "replace": [("was **$416.2 billion**.", "was **$391.0 billion**, down from $416.2 billion a year earlier.")]},
+    {"id": "q_001", "kind": "harmless: comparison added", "expect": "pass",
+     "replace": [("was **$416.2 billion**.", "was **$416.2 billion**, up from $391.0 billion in fiscal year 2024.")]},
+    {"id": "q_008", "kind": "wrong headline, gold as the remainder", "expect": "fail",
+     "replace": [("51.3% of Microsoft's total revenue came from the United States", "48.7% of Microsoft's total revenue "
+                  "came from the United States"), ("The remaining 48.7% ($137.2 billion)", "The remaining 51.3% ($137.2 billion)")]},
+    {"id": "q_008", "kind": "wrong unit", "expect": "fail",
+     "replace": [("51.3% of Microsoft's total revenue came from the United States",
+                  "$51.3 billion of Microsoft's total revenue came from the United States")]},
     {"id": "q_011", "kind": "runners-up, wrong winner", "expect": "fail",
      "replace": [("Alphabet (GOOGL) had the fastest revenue growth between its two most recent fiscal years, at 15.1% "
                   "(FY2024 → FY2025).", "Microsoft (MSFT) had the fastest revenue growth between its two most recent "
@@ -117,7 +129,8 @@ def main() -> None:
             print(f"skipping {short(judge)}: it wrote these answers")
             continue
         with ThreadPoolExecutor(4) as pool:
-            results = list(pool.map(lambda ce: grade(questions[ce[0]["id"]], ce[1], judge, facts), zip(CASES, edited)))
+            results = list(pool.map(lambda ce: grade(questions[ce[0]["id"]], ce[1], judge, facts, faith=False),
+                                    zip(CASES, edited)))
         cost = sum((r["judge_usage"] or {}).get("cost_usd", 0.0) for r in results)
         bad = [(c, r) for c, r in zip(CASES, results) if c["expect"] == "fail"]
         ok = [(c, r) for c, r in zip(CASES, results) if c["expect"] == "pass"]

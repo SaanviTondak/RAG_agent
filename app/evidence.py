@@ -75,11 +75,16 @@ NUDGE_LABELS = (("explanations or disclosures", "Checking the filings for the ex
 
 def step_view(step: dict) -> dict | None:
     """One trace step as {"kind", "label", "detail"} for the UI and API; None for internal steps."""
+    if step["type"] == "plan":
+        return {"kind": "plan", "label": "Plan", "detail": "\n".join(
+            f"{i}. {s['ask']}" for i, s in enumerate(step["steps"], 1))}
     if step["type"] == "nudge":
         label = next((l for k, l in NUDGE_LABELS if k in step["text"]), "Double-checking the evidence")
         return {"kind": "check", "label": label, "detail": ""}
     if step["type"] == "fallback":
         return {"kind": "check", "label": "Writing the answer from the evidence gathered so far", "detail": ""}
+    if step["type"] == "edit":  # a rejected edit is internal: the answer is the draft, unchanged
+        return None if step["fallback"] else {"kind": "check", "label": "Tightening the answer", "detail": ""}
     if step["type"] != "tool":
         return None
     args, meta, name = _args(step), step["meta"], step["tool"]

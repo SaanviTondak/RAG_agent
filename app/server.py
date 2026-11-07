@@ -2,7 +2,7 @@
 
   python -m app.server            # http://localhost:8000  (API docs at /docs)
 
-POST /api/chat {"question": "...", "history": [{"role": "user"|"assistant", "content": "..."}]?}
+POST /api/chat {"question": "...", "history": [{"role": "user"|"assistant", "content": "..."}]?, "plan": bool?}
 - JSON (default): {"answer", "content" (same text), "sources" (cited evidence), "steps", "usage"}
 - SSE (Accept: text/event-stream, or ?stream=true): "step" events as tools run, then "answer" {"content"},
   then "sources" {"sources", "steps", "usage"}, then "done". Comment lines keep the stream alive.
@@ -59,6 +59,8 @@ class Turn(BaseModel):
 class ChatRequest(BaseModel):
     question: str = Field(min_length=1, description="The question to answer.")
     history: list[Turn] = Field(default_factory=list, description="Earlier turns, for follow-up questions.")
+    plan: bool | None = Field(None, description="true: write and show a plan before researching (slower); "
+                                                "false: never; omitted: the server default (PLANNER).")
 
     @field_validator("question")
     @classmethod
@@ -71,6 +73,10 @@ class ChatRequest(BaseModel):
 def _history(req: ChatRequest) -> list[dict]:
     turns = req.history[-HISTORY_MESSAGES:]
     return [{"role": t.role, "content": body(t.content) if t.role == "assistant" else t.content} for t in turns]
+
+
+def _agent_kwargs(req: ChatRequest) -> dict:
+    return {} if req.plan is None else {"planner": "on" if req.plan else "off"}
 
 
 def _payload(result: dict) -> dict:
@@ -113,16 +119,17 @@ async def chat(req: ChatRequest, request: Request):
     history = _history(req)
     if not stream:
         try:
-            result = await asyncio.wait_for(run_in_threadpool(agent.run, req.question, history), HARD_TIMEOUT_S)
+            result = await asyncio.wait_for(run_in_threadpool(agent.run, req.question, history, **_agent_kwargs(req)),
+                                            HARD_TIMEOUT_S)
         except Exception as e:  # noqa: BLE001 - mapped to an honest status code
             status, message = _error(e)
             return JSONResponse({"error": message}, status_code=status)
         return _payload(result)
-    return StreamingResponse(_stream(req.question, history), media_type="text/event-stream",
+    return StreamingResponse(_stream(req.question, history, _agent_kwargs(req)), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
-async def _stream(question: str, history: list[dict]):
+async def _stream(question: str, history: list[dict], kwargs: dict):
     loop = asyncio.get_running_loop()
     queue: asyncio.Queue = asyncio.Queue()
 
@@ -131,7 +138,7 @@ async def _stream(question: str, history: list[dict]):
         if view:
             loop.call_soon_threadsafe(queue.put_nowait, ("step", view))
 
-    task = loop.run_in_executor(None, lambda: agent.run(question, history, on_step=on_step))
+    task = loop.run_in_executor(None, lambda: agent.run(question, history, on_step=on_step, **kwargs))
     deadline = loop.time() + HARD_TIMEOUT_S
     while True:
         if task.done() and queue.empty():

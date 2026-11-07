@@ -1,0 +1,18 @@
+{
+  "run_id": "20261106-2346_holdout_glm-5p3_v1r_gn_final_holdout",
+  "set": "holdout",
+  "ids": null,
+  "model": "accounts/fireworks/models/glm-5p3",
+  "judge": "accounts/fireworks/models/deepseek-v4p1-flash",
+  "runs": 3,
+  "rerank": true,
+  "prompt": "v1r",
+  "system": "agent",
+  "grounding_nudge": true,
+  "planner": "off",
+  "editor": false,
+  "fact_split_usd": 0.0,
+  "graded_at": "2026-11-06 23:53",
+  "n": 39,
+  "passed": 38
+}

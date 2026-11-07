@@ -1,0 +1,17 @@
+{
+  "run_id": "20261106-1909_tune_glm-5p3_v1c_live_v1c",
+  "set": "tune",
+  "ids": "q_006,q_025,x_047,x_036,q_022,x_014,q_014",
+  "model": "accounts/fireworks/models/glm-5p3",
+  "judge": "accounts/fireworks/models/deepseek-v4p1-flash",
+  "runs": 3,
+  "rerank": true,
+  "prompt": "v1c",
+  "system": "agent",
+  "grounding_nudge": false,
+  "planner": "off",
+  "fact_split_usd": 0.0,
+  "graded_at": "2026-11-06 19:13",
+  "n": 21,
+  "passed": 15
+}

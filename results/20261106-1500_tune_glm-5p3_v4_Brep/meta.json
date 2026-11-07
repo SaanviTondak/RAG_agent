@@ -1,0 +1,14 @@
+{
+  "set": "tune",
+  "ids": "q_006,q_025,x_047",
+  "model": "accounts/fireworks/models/glm-5p3",
+  "judge": "accounts/fireworks/models/deepseek-v4p1-flash",
+  "runs": 2,
+  "rerank": true,
+  "prompt": "v4",
+  "system": "agent",
+  "grounding_nudge": false,
+  "planner": "off",
+  "fact_split_usd": 0.0,
+  "graded_at": "2026-11-06 15:02"
+}

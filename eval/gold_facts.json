@@ -224,13 +224,14 @@
       "Apple's net income was $97.0 billion in FY2023",
       "Apple's net income was $93.7 billion in FY2024",
       "Net income decreased by about $3.3 billion (about 3.4%)",
-      "Revenue grew (about 2.0%) in FY2024",
+      "Revenue grew in FY2024",
       "The FY2024 10-K cites a one-time income tax charge of $10.2 billion, net",
       "The charge related to the European Commission's State Aid Decision",
       "The effective tax rate rose to 24.1% from 14.7%"
     ],
-    "reviewed": false,
-    "split_by": "claude (hand-written)"
+    "reviewed": true,
+    "split_by": "claude (hand-written)",
+    "review": "Saanvi, 2026-11-06 (eval/review_checklists.md): 'Revenue grew (about 2.0%)' -> 'Revenue grew': the question itself states revenue grew; the figure is not required"
   },
   "x_036": {
     "facts": [
@@ -244,8 +245,9 @@
       "Google Cloud operating income rose $7.8 billion",
       "A larger Other Bets loss (about $3.1 billion more) or higher Alphabet-level costs partly offset the gains"
     ],
-    "reviewed": false,
-    "split_by": "claude (hand-written)"
+    "reviewed": true,
+    "split_by": "claude (hand-written)",
+    "review": "Saanvi, 2026-11-06 (eval/review_checklists.md): OK as written"
   },
   "x_037": {
     "facts": [
@@ -257,8 +259,9 @@
       "Microsoft Cloud revenue was $137.7 billion in FY2024",
       "Microsoft Cloud revenue was $111.6 billion in FY2023"
     ],
-    "reviewed": false,
-    "split_by": "claude (hand-written)"
+    "reviewed": true,
+    "split_by": "claude (hand-written)",
+    "review": "Saanvi, 2026-11-06 (eval/review_checklists.md): OK as written"
   },
   "x_038": {
     "facts": [
@@ -266,8 +269,9 @@
       "Apple's FY2025 repurchases were about $90.7 billion (cash flow statement) or $89.3 billion (Note 10); either figure counts",
       "Alphabet's FY2025 repurchases were $45.4 billion"
     ],
-    "reviewed": false,
-    "split_by": "claude (hand-written)"
+    "reviewed": true,
+    "split_by": "claude (hand-written)",
+    "review": "Saanvi, 2026-11-06 (eval/review_checklists.md): OK as written"
   },
   "x_039": {
     "facts": [
@@ -276,7 +280,126 @@
       "Google Cloud was about 12.4% (12.3-12.4%) of Alphabet's FY2024 revenue",
       "The share increased by about 2.2 percentage points"
     ],
-    "reviewed": false,
-    "split_by": "claude (hand-written)"
+    "reviewed": true,
+    "split_by": "claude (hand-written)",
+    "review": "Saanvi, 2026-11-06 (eval/review_checklists.md): OK as written"
+  },
+  "x_041": {
+    "facts": [
+      "Microsoft had the fastest operating income growth",
+      "Microsoft's operating income grew about 17.4% (17%), from $109.4 billion to $128.5 billion",
+      "Alphabet's operating income grew about 14.8% and Apple's about 8.0%",
+      "The 10-K says the growth came from (growth across) each of Microsoft's segments"
+    ],
+    "reviewed": true,
+    "split_by": "claude (hand-written)",
+    "review": "Saanvi, 2026-11-06 (eval/review_checklists.md): dropped 'gross margin +$22.9B': it does not answer what drove operating income"
+  },
+  "x_042": {
+    "facts": [
+      "Alphabet spent the largest share of revenue on R&D",
+      "Alphabet's R&D was about 15.2% of revenue",
+      "Microsoft's R&D share was about 11.5% and Apple's about 8.3%",
+      "The 10-K says Alphabet continues to invest in technical infrastructure, in particular for AI",
+      "The 10-K says Alphabet invested heavily in capital expenditures in 2025 (about $91.4 billion)",
+      "Alphabet expects to significantly increase its technical infrastructure investment in 2026",
+      "The costs of operating the infrastructure (depreciation, energy, equipment, network capacity) are expected to increase significantly because AI needs more compute"
+    ],
+    "reviewed": true,
+    "split_by": "claude (hand-written)",
+    "review": "Saanvi, 2026-11-06 (eval/review_checklists.md): OK as written"
+  },
+  "x_043": {
+    "facts": [
+      "Greater China performed worst (the only region to decline)",
+      "Greater China net sales fell about 3.8%, from $66.95 billion to $64.38 billion",
+      "Apple's other regions grew in FY2025",
+      "The 10-K says the decrease was primarily due to lower net sales of iPhone",
+      "The decrease was partially offset by higher net sales of Mac"
+    ],
+    "reviewed": true,
+    "split_by": "claude (hand-written)",
+    "review": "Saanvi, 2026-11-06 (eval/review_checklists.md): OK as written"
+  },
+  "x_044": {
+    "facts": [
+      "Apple had the lowest current ratio in FY2025 (about 0.89)",
+      "Apple's FY2025 share repurchases were about $90.7 billion (cash flow statement) or $89.3 billion (Note 10); either figure counts"
+    ],
+    "reviewed": true,
+    "split_by": "claude (hand-written)",
+    "review": "Saanvi, 2026-11-06 (eval/review_checklists.md): OK as written"
+  },
+  "x_045": {
+    "facts": [
+      "The segment revenues do not add up exactly to total revenue",
+      "Google Services, Google Cloud and Other Bets sum to about $403.0 billion",
+      "Alphabet's total revenue was $402.8 billion",
+      "The difference is about $127 million",
+      "The difference is hedging gains (losses), a reconciling item that is not a segment"
+    ],
+    "reviewed": true,
+    "split_by": "claude (hand-written)",
+    "review": "Saanvi, 2026-11-06 (eval/review_checklists.md): OK as written"
+  },
+  "x_046": {
+    "facts": [
+      "Yes, the database agrees with the 10-K",
+      "Greater China revenue was $66.95 billion in FY2024 and $64.38 billion in FY2025",
+      "The decline is about 3.8%, which rounds to 4%"
+    ],
+    "reviewed": true,
+    "split_by": "claude (hand-written)",
+    "review": "Saanvi, 2026-11-06 (eval/review_checklists.md): OK as written"
+  },
+  "x_047": {
+    "facts": [
+      "Microsoft says scaling its AI infrastructure lowered its gross margin percentage",
+      "Microsoft Cloud gross margin percentage decreased to 69%",
+      "Microsoft's margin pressure was offset in part by efficiency gains in Azure",
+      "Microsoft's operating expenses rose on investments in cloud and AI engineering",
+      "Alphabet expects the costs of operating its technical infrastructure (depreciation, energy, equipment, network capacity) to increase significantly",
+      "Alphabet attributes the rising costs to AI requiring more compute than its historical offerings",
+      "Google Cloud's operating income gains were partly offset by higher usage costs for technical infrastructure"
+    ],
+    "reviewed": true,
+    "split_by": "claude (hand-written)",
+    "review": "Saanvi, 2026-11-06 (eval/review_checklists.md): dropped 'increase investment in 2026': it is about investment, not costs or margins"
+  },
+  "x_048": {
+    "facts": [
+      "Alphabet had the highest capital expenditures in dollars",
+      "Alphabet's FY2025 capital expenditures were about $91.4 billion",
+      "Microsoft's FY2025 capital expenditures were about $64.6 billion",
+      "Microsoft had the highest capital expenditures relative to revenue (about 22.9%)",
+      "Alphabet's capital expenditures were about 22.7% of revenue"
+    ],
+    "reviewed": true,
+    "split_by": "claude (hand-written)",
+    "review": "Saanvi, 2026-11-06 (eval/review_checklists.md): dropped Apple's capex and capex share: the question asks which company is highest, and a correct answer without Apple covered only 71%"
+  },
+  "x_049": {
+    "facts": [
+      "Japan grew the fastest",
+      "Japan's net sales grew about 14.6%",
+      "Japan's net sales rose from $25.1 billion to $28.7 billion",
+      "The 10-K attributes the increase primarily to higher net sales of iPhone",
+      "The 10-K attributes the increase to higher net sales of Services",
+      "The 10-K attributes the increase to higher net sales of iPad"
+    ],
+    "reviewed": true,
+    "split_by": "claude (hand-written)",
+    "review": "Saanvi, 2026-11-06 (eval/review_checklists.md): OK as written"
+  },
+  "x_050": {
+    "facts": [
+      "About $144.5 billion of FY2025 revenue came from the United States",
+      "The United States was about 51.3% of FY2025 revenue",
+      "The United States was about 50.9% of FY2024 revenue",
+      "The United States share rose by about 0.4 percentage points"
+    ],
+    "reviewed": true,
+    "split_by": "claude (hand-written)",
+    "review": "Saanvi, 2026-11-06 (eval/review_checklists.md): OK as written"
   }
 }

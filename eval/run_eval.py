@@ -16,15 +16,17 @@ import json
 import math
 import statistics
 import threading
-from collections import defaultdict
+from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 
 from app import agent, baseline
-from app.config import CHAT_MODEL, GROUNDING_NUDGE, JUDGE_MODEL, PRICES, PROMPT_VERSION, RERANK, ROOT
+from app.config import (ANSWER_EDITOR, CHAT_MODEL, GROUNDING_NUDGE, JUDGE_MODEL, PLANNER, PRICES, PROMPT_VERSION,
+                        RERANK, ROOT)
 from app.llm import cost_usd
-from eval.graders import grade, split_facts
+from app.editor import MIN_EDIT_WORDS
+from eval.graders import _sum_usage, grade, split_facts
 
 EVAL_DIR = ROOT / "eval"
 RESULTS_DIR = ROOT / "results"
@@ -76,7 +78,8 @@ def read_jsonl(path: Path) -> list[dict]:
 
 
 def run_answers(questions, run_dir: Path, model: str, rerank: bool, prompt: str, runs: int, max_usd: float,
-                reuse: list[str], system: str = "agent", gnudge: bool = False) -> None:
+                reuse: list[str], system: str = "agent", gnudge: bool = False, planner: str = "off",
+                editor: bool = False) -> None:
     path = run_dir / "answers.jsonl"
     done = {(a["id"], a["run"]) for a in read_jsonl(path)}
     by_id = {q["id"]: q for q in questions}
@@ -85,7 +88,8 @@ def run_answers(questions, run_dir: Path, model: str, rerank: bool, prompt: str,
             for a in read_jsonl(RESULTS_DIR / rid / "answers.jsonl"):
                 if a["id"] in by_id and (a["id"], a["run"]) not in done and a["run"] < runs \
                         and a["model"] == model and a["rerank"] == rerank and a.get("prompt", "v1") == prompt \
-                        and a.get("system", "agent") == system and a.get("grounding_nudge", False) == gnudge:
+                        and a.get("system", "agent") == system and a.get("grounding_nudge", False) == gnudge \
+                        and a.get("planner", "off") == planner and a.get("editor", False) == editor:
                     f.write(json.dumps(a) + "\n")
                     done.add((a["id"], a["run"]))
     jobs = [(q, r) for r in range(runs) for q in questions if (q["id"], r) not in done]
@@ -105,7 +109,8 @@ def run_answers(questions, run_dir: Path, model: str, rerank: bool, prompt: str,
             return None
         try:
             if system == "agent":
-                result = agent.run(q["question"], model=model, rerank=rerank, prompt=prompt, grounding_nudge=gnudge)
+                result = agent.run(q["question"], q.get("history"), model=model, rerank=rerank, prompt=prompt,
+                                   grounding_nudge=gnudge, planner=planner, editor=editor)
             else:
                 result = baseline.run(q["question"], system, model=model, prompt=prompt)
         except Exception as e:  # noqa: BLE001 - not saved, so --resume retries it
@@ -113,7 +118,7 @@ def run_answers(questions, run_dir: Path, model: str, rerank: bool, prompt: str,
             return None
         result.pop("question")
         rec = {"id": q["id"], "run": r, "model": model, "rerank": rerank, "prompt": prompt, "system": system,
-               "grounding_nudge": gnudge, "result": result}
+               "grounding_nudge": gnudge, "planner": planner, "editor": editor, "result": result}
         u = result["usage"]
         with lock:
             spent[0] += u["cost_usd"]
@@ -138,12 +143,17 @@ def grade_all(questions, run_dir: Path, judge: str, facts: dict) -> list[dict]:
         raise SystemExit(f"The judge ({short(judge)}) must differ from the answering model; pass --judge.")
 
     def work(a):
-        q = by_id[a["id"]]
+        q, result = by_id[a["id"]], a["result"]
         try:
-            g = grade(q, a["result"], judge, facts)
+            g = grade(q, result, judge, facts)
+            if result.get("draft"):  # the editor changed the answer: grade the unedited draft too (paired comparison)
+                d = grade(q, {**result, "answer": result["draft"]}, judge, facts)
+                g["draft"] = {k: d[k] for k in ("pass", "score", "reason", "words", "lead", "faithfulness")}
+                g["judge_usage"] = _sum_usage(g["judge_usage"], d["judge_usage"])
         except Exception as e:  # noqa: BLE001 - a grader failure is recorded, not fatal
             g = {"pass": False, "score": 0.0, "reason": f"grader error: {e}", "details": {}, "judge_usage": None,
-                 "routing": None, "recall": None, "citations": None, "grounding": None, "lead": None, "words": None}
+                 "routing": None, "recall": None, "citations": None, "grounding": None, "lead": None, "words": None,
+                 "faithfulness": None}
         return {"id": a["id"], "run": a["run"], **g}
 
     with ThreadPoolExecutor(WORKERS) as pool:
@@ -172,6 +182,18 @@ def pct(x: float) -> str:
 def percentile(xs: list[float], p: float) -> float:
     xs = sorted(xs)
     return xs[min(len(xs) - 1, int(round(p * (len(xs) - 1))))] if xs else 0.0
+
+
+LEVEL_NAMES = {0: "0 out of scope", 1: "1 lookup", 2: "2 calculation / comparison", 3: "3 figure + explanation",
+               4: "4 multi-part synthesis", 5: "5 dependent multi-hop", 6: "6 cross-check / data conflict",
+               7: "7 follow-up"}
+
+
+def gold_ratio(q: dict, s: dict) -> float | None:
+    """Answer length relative to the gold answer (llm_judge questions, whose gold is a full answer)."""
+    if q["evaluation"] != "llm_judge" or s.get("words") is None:
+        return None
+    return s["words"] / max(len(q["gold_answer"].split()), 1)
 
 
 def modality(q: dict) -> str:
@@ -208,18 +230,25 @@ def scorecard(questions, run_dir: Path, scores: list[dict], meta: dict, compare:
     nudges = sum(any(t["type"] == "nudge" for t in r["trace"]) for _, _, r in rows)
     fallbacks = sum(any(t["type"] == "fallback" for t in r["trace"]) for _, _, r in rows)
     words = [s["words"] for s in graded if s.get("words") is not None]
+    ratios = [r for q, s, _ in rows if (r := gold_ratio(q, s)) is not None]
     leads = [s["lead"] for s in graded if s.get("lead")]
     lead_cov = [s["lead"]["score"] for q, s, _ in rows if s.get("lead") and q["evaluation"] == "llm_judge"]
     full_cov = [s["score"] for q, s, _ in rows if s.get("lead") and q["evaluation"] == "llm_judge"]
+    faiths = [s["faithfulness"] for s in graded if s.get("faithfulness")]
 
     md = [f"# Scorecard: {run_dir.name}", "",
-          f"- System: {meta.get('system', 'agent')}{' + grounding nudge' if meta.get('grounding_nudge') else ''} | answer model: `{short(meta['model'])}` | prompt: {meta.get('prompt', 'v1')} | judge: `{short(meta['judge'])}` | "
+          f"- System: {meta.get('system', 'agent')}{' + grounding nudge' if meta.get('grounding_nudge') else ''}"
+          f"{' + planner (' + meta['planner'] + ')' if meta.get('planner', 'off') != 'off' else ''}"
+          f"{' + answer editor' if meta.get('editor') else ''} | answer model: `{short(meta['model'])}` | prompt: {meta.get('prompt', 'v1')} | judge: `{short(meta['judge'])}` | "
           f"rerank: {meta['rerank']} | "
           f"set: {meta['set']} | runs per question: {meta['runs']} | graded {meta['graded_at']}", "",
           "## Headline", "",
           f"**{k}/{n} passed ({pct(k / n if n else 0)})**, 95% CI {pct(lo)}–{pct(hi)}; "
           f"mean score {sum(s['score'] for _, s, _ in rows) / max(n, 1):.2f}", "",
-          group_table("Tier", lambda q: q["tier"]), "", group_table("Sources needed", modality), "",
+          *question_level(rows, meta["runs"]),
+          group_table("Tier", lambda q: q["tier"]), "",
+          group_table("Complexity level", lambda q: LEVEL_NAMES.get(q.get("level"), "?")), "",
+          group_table("Sources needed", modality), "",
           group_table("Grader", lambda q: q["evaluation"]), "", group_table("Question set", lambda q: q["source"]), "",
           "## Diagnostics", "",
           "| Metric | Value |", "|---|---|",
@@ -228,8 +257,12 @@ def scorecard(questions, run_dir: Path, scores: list[dict], meta: dict, compare:
           f"| Saw a gold page (questions with gold pages) | {sum(r['hit'] for r in rec)}/{len(rec)} |",
           f"| Invalid citations (total) | {bad_cites} |",
           f"| Answers with numbers not found in any tool output | {len(ungrounded)}/{len(graded)} |",
+          f"| Faithfulness: answers with a claim the tools did not return / contradicting them | "
+          f"{sum(not f['ok'] for f in faiths)}/{len(faiths)} / {sum(f['contradicted'] > 0 for f in faiths)}/{len(faiths)} "
+          f"({sum(f['n_claims'] for f in faiths)} claims checked) |",
           f"| Nudges / fallbacks | {nudges} / {fallbacks} |",
           f"| Answer length, words: median / max | {percentile(words, .5):.0f} / {max(words, default=0)} |",
+          f"| Answer length ÷ gold answer length (llm_judge, median) | {percentile(ratios, .5):.1f}x |",
           f"| Opening paragraph alone would pass | {sum(l['pass'] for l in leads)}/{len(leads)} |",
           f"| Opening-paragraph fact coverage (llm_judge, mean) | "
           f"{statistics.mean(lead_cov) if lead_cov else 0:.2f} (full answer {statistics.mean(full_cov) if full_cov else 0:.2f}) |",
@@ -255,8 +288,11 @@ def scorecard(questions, run_dir: Path, scores: list[dict], meta: dict, compare:
         for _, s, _ in rows:
             per_q[s["id"]].append(s["pass"])
         flaky = {i: v for i, v in per_q.items() if 0 < sum(v) < len(v)}
-        md += ["", f"**Consistency:** {len(per_q) - len(flaky)}/{len(per_q)} questions gave the same result in every run."
+        always = sum(all(v) for v in per_q.values())
+        md += ["", f"**Consistency:** {always}/{len(per_q)} questions passed in every run; "
+               f"{len(per_q) - len(flaky)}/{len(per_q)} gave the same result in every run."
                + (f" Inconsistent: {', '.join(f'{i} ({sum(v)}/{len(v)})' for i, v in flaky.items())}" if flaky else "")]
+    md += editor_section(rows)
     if compare:
         old = defaultdict(list)
         for s in read_jsonl(RESULTS_DIR / compare / "scores.jsonl"):
@@ -269,6 +305,55 @@ def scorecard(questions, run_dir: Path, scores: list[dict], meta: dict, compare:
         md += ["", f"## Compared with {compare}", ""]
         md += [f"- {i}: {pct(a)} → {pct(b)} {'⬆️' if b > a else '⬇️'}" for i, a, b in sorted(flips)] or ["- No changes."]
     return "\n".join(md) + "\n"
+
+
+def question_level(rows, runs: int) -> list[str]:
+    """With repeated runs, answers to the same question are not independent, so the CI over answers is too narrow;
+    the honest unit is the question (passed in every run)."""
+    if runs <= 1:
+        return []
+    per_q = defaultdict(list)
+    for _, s, _ in rows:
+        per_q[s["id"]].append(s["pass"])
+    k, n = sum(all(v) for v in per_q.values()), len(per_q)
+    lo, hi = wilson(k, n)
+    return [f"**By question: {k}/{n} passed in every run**, 95% CI {pct(lo)}–{pct(hi)} (the CI above treats repeated "
+            f"runs of a question as independent, so it is too narrow).", ""]
+
+
+def editor_section(rows) -> list[str]:
+    """Answer editor, paired on the same research: the unedited draft vs the answer sent."""
+    edits = [next((t for t in r["trace"] if t["type"] == "edit"), None) for _, _, r in rows]
+    if not any(edits):
+        return []
+    applied = [(q, s) for (q, s, _), e in zip(rows, edits) if e and not e["fallback"]]
+    rejected = Counter(e["fallback"].split(" [")[0] for e in edits if e and e["fallback"])
+    draft_pass = lambda s: s["draft"]["pass"] if s.get("draft") else s["pass"]  # noqa: E731
+    lost = [f"{s['id']}#{s['run']}" for _, s in applied if s.get("draft") and s["draft"]["pass"] and not s["pass"]]
+    gained = [f"{s['id']}#{s['run']}" for _, s in applied if s.get("draft") and not s["draft"]["pass"] and s["pass"]]
+    d_words = [s["draft"]["words"] for _, s in applied if s.get("draft")]
+    e_words = [s["words"] for _, s in applied if s.get("draft")]
+    ratio = lambda q, w: w / max(len(q["gold_answer"].split()), 1)  # noqa: E731
+    jq = [(q, s) for q, s in applied if s.get("draft") and q["evaluation"] == "llm_judge"]
+    faith = lambda f: f is not None and not f["ok"]  # noqa: E731
+    n = len(rows)
+    return ["", "## Answer editor (paired: same research, unedited draft vs answer sent)", "",
+            "| Metric | Draft | Sent |", "|---|---|---|",
+            f"| Passed (all answers) | {sum(draft_pass(s) for _, s, _ in rows)}/{n} | {sum(s['pass'] for _, s, _ in rows)}/{n} |",
+            f"| Edited answers: words, median | {percentile(d_words, .5):.0f} | {percentile(e_words, .5):.0f} |",
+            f"| Edited llm_judge answers: words ÷ gold, median | "
+            f"{percentile([ratio(q, s['draft']['words']) for q, s in jq], .5):.1f}x | "
+            f"{percentile([ratio(q, s['words']) for q, s in jq], .5):.1f}x |",
+            f"| Edited llm_judge answers: fact coverage, mean | "
+            f"{statistics.mean(s['draft']['score'] for _, s in jq) if jq else 0:.2f} | "
+            f"{statistics.mean(s['score'] for _, s in jq) if jq else 0:.2f} |",
+            f"| Edited answers with an unsupported or contradicted claim | "
+            f"{sum(faith(s['draft']['faithfulness']) for _, s in applied if s.get('draft'))}/{len(applied)} | "
+            f"{sum(faith(s.get('faithfulness')) for _, s in applied)}/{len(applied)} |", "",
+            f"Edited {len(applied)}/{n}; left as written (under {MIN_EDIT_WORDS} words) "
+            f"{sum(e is None for e in edits)}; edit rejected by a check: "
+            f"{', '.join(f'{k} {v}' for k, v in rejected.items()) or 'none'}.",
+            f"Draft passed, edited failed: {', '.join(lost) or 'none'}. Draft failed, edited passed: {', '.join(gained) or 'none'}."]
 
 
 # ---------------------------------------------------------------- CLI
@@ -286,6 +371,10 @@ def main() -> None:
                     help="the agent, or a non-agentic baseline from app/baseline.py")
     ap.add_argument("--grounding-nudge", action=argparse.BooleanOptionalAction, default=GROUNDING_NUDGE,
                     help="agent: send the model back once if a percentage in its draft is in no tool result")
+    ap.add_argument("--planner", choices=["auto", "on", "off"], default=PLANNER,
+                    help="agent: plan multi-part questions first (auto) or every question (on)")
+    ap.add_argument("--editor", action=argparse.BooleanOptionalAction, default=ANSWER_EDITOR,
+                    help="agent: shorten long final answers with one extra call (app/editor.py)")
     ap.add_argument("--max-usd", type=float, default=1.00, help="stop running the agent once this much is spent")
     ap.add_argument("--reuse", default="", help="comma-separated run ids whose matching answers are copied")
     ap.add_argument("--resume", help="continue an existing run directory")
@@ -308,13 +397,14 @@ def main() -> None:
             print(f"warning: no price for {short(a.model)}; costs will show as $0")
         run_id = f"{datetime.now():%Y%m%d-%H%M}_{a.set}_{short(a.model)}_{a.prompt}" \
             + ("" if a.system == "agent" else f"_{a.system}") + ("_gn" if a.grounding_nudge else "") \
+            + {"auto": "_plan", "on": "_planall"}.get(a.planner, "") + ("_ed" if a.editor else "") \
             + ("_norerank" if a.no_rerank else "") \
             + (f"_{a.name}" if a.name else "")
         run_dir = RESULTS_DIR / run_id
         run_dir.mkdir(parents=True, exist_ok=True)
         meta = {"set": a.set, "ids": a.ids, "model": a.model, "judge": a.judge, "runs": a.runs,
                 "rerank": RERANK and not a.no_rerank, "prompt": a.prompt, "system": a.system,
-                "grounding_nudge": a.grounding_nudge}
+                "grounding_nudge": a.grounding_nudge, "planner": a.planner, "editor": a.editor}
         (run_dir / "meta.json").write_text(json.dumps(meta, indent=2) + "\n")
 
     questions = load_set(meta["set"])
@@ -323,7 +413,8 @@ def main() -> None:
         questions = [q for q in questions if q["id"] in wanted]
     if not a.regrade:
         run_answers(questions, run_dir, meta["model"], meta["rerank"], meta.get("prompt", "v1"), meta["runs"], a.max_usd,
-                    [r for r in a.reuse.split(",") if r], meta.get("system", "agent"), meta.get("grounding_nudge", False))
+                    [r for r in a.reuse.split(",") if r], meta.get("system", "agent"), meta.get("grounding_nudge", False),
+                    meta.get("planner", "off"), meta.get("editor", False))
     if a.no_grade:
         print(f"Answers saved in {run_dir / 'answers.jsonl'}; grade later with --regrade {run_dir.name}")
         return

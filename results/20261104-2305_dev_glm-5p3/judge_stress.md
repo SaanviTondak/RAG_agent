@@ -4,7 +4,7 @@ Known edits to saved good answers. Planted errors must fail; harmless edits must
 
 | Judge | Planted errors caught | Harmless edits passed | Cost |
 |---|---|---|---|
-| deepseek-v4p1-flash | 19/19 | 5/5 | $0.0325 |
+| deepseek-v4p1-flash | 22/22 | 6/6 | $0.0635 |
 
 | id | edit | expected | deepseek-v4p1-flash |
 |---|---|---|---|
@@ -14,7 +14,7 @@ Known edits to saved good answers. Planted errors must fail; harmless edits must
 | q_012 | harmless: cut extra context | pass | pass (1.00) |
 | q_006 | dropped facts | fail | fail (0.57) |
 | q_006 | contradiction | fail | fail (0.86) |
-| q_022 | wrong company | fail | fail (0.88) |
+| q_022 | wrong company | fail | fail (0.75) |
 | q_022 | wrong number | fail | fail (0.88) |
 | q_022 | dropped facts | fail | fail (0.75) |
 | q_022 | harmless: cut repetition | pass | pass (1.00) |
@@ -31,6 +31,10 @@ Known edits to saved good answers. Planted errors must fail; harmless edits must
 | q_018 | wrong company | fail | fail (0.00) |
 | q_018 | harmless: runners-up in opening | pass | pass (1.00) |
 | q_011 | harmless: runners-up in opening | pass | pass (1.00) |
+| q_001 | wrong headline, right number as comparison | fail | fail (0.00) |
+| q_001 | harmless: comparison added | pass | pass (1.00) |
+| q_008 | wrong headline, gold as the remainder | fail | fail (0.00) |
+| q_008 | wrong unit | fail | fail (0.00) |
 | q_011 | runners-up, wrong winner | fail | fail (0.00) |
 
 ## Judge reasons where it got the case wrong

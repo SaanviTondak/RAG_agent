@@ -72,15 +72,22 @@ def _cite(c: dict) -> str:
 
 def search_filings(query: str, ticker: str | None = None, fiscal_year=None) -> tuple[str, dict]:
     hits = get_index().search(query, ticker=_ticker(ticker), fiscal_year=_year(fiscal_year))
+    if not hits:
+        return "No matching passages (check ticker / fiscal_year).", {"type": "search", "query": query, "hits": []}
+    # whole passages only, and only the passages the model actually receives are recorded as seen
+    blocks, sent, size = [], [], 0
+    for n, h in enumerate(hits, 1):
+        block = f"[{n}] {_cite(h)} | Item {h['item']}. {h['item_title']} > {h['section']} | parent_id={h['parent_id']}\n{h['text']}"
+        if blocks and size + len(block) > RESULT_CHARS:
+            break
+        blocks.append(block)
+        sent.append(h)
+        size += len(block) + 7
     meta = {"type": "search", "query": query, "hits": [
         {"chunk_id": h["id"], "parent_id": h["parent_id"], "doc": h["doc"], "page": h["page"],
          "citation": _cite(h), "section": h["section"], "is_table": h["is_table"], "score": h["score"],
-         "text": h["text"]} for h in hits]}
-    if not hits:
-        return "No matching passages (check ticker / fiscal_year).", meta
-    blocks = [f"[{n}] {_cite(h)} | Item {h['item']}. {h['item_title']} > {h['section']} | parent_id={h['parent_id']}\n{h['text']}"
-              for n, h in enumerate(hits, 1)]
-    return "\n\n---\n\n".join(blocks)[:RESULT_CHARS], meta
+         "text": h["text"]} for h in sent]}
+    return "\n\n---\n\n".join(blocks), meta
 
 
 def read_section(parent_id: str | None = None, ticker: str | None = None, fiscal_year=None,
@@ -91,7 +98,8 @@ def read_section(parent_id: str | None = None, ticker: str | None = None, fiscal
         if p is None:
             return f"Unknown parent_id {parent_id!r}.", {"type": "section", "parents": []}
         header = f"{p['ticker']} FY{p['fiscal_year']} 10-K | Item {p['item']}. {p['item_title']} | pages {p['page_start']}-{p['page_end']}"
-        return f"{header}\n\n{p['text']}"[:RESULT_CHARS], {"type": "section", "parents": [_parent_meta(p)]}
+        # not cut, so every page recorded as seen was delivered (the largest section in the index is 8,259 characters)
+        return f"{header}\n\n{p['text']}", {"type": "section", "parents": [_parent_meta(p)]}
 
     t, y, it = _ticker(ticker), _year(fiscal_year), (item or "").strip().upper().removeprefix("ITEM").strip(" .")
     if not (t and y and it):

@@ -111,3 +111,24 @@ results/<run_id>/
 ## Day 4 preview
 Fix failures; screen 7 models on dev (~$1.30), confirm top 2–3 (~$1.20); agent vs baseline (~$0.40);
 end-to-end rerank ablation only if search-only shows a gap; choose final config.
+- 2026-11-06 complexity / planning / conciseness experiment (plan: ~/.claude/plans/ok-can-you-make-cuddly-diffie.md):
+  - 10 new questions x_041-x_050 (levels 4-7: dependent multi-hop, cross-check, open-ended, follow-ups; 7 tune,
+    3 holdout) + a `level` field on all 60. Current agent (A, v1) passed all 7 new tune ones: 47/47.
+  - `app/planner.py`: gate 33/33 recall and precision on hand labels (tuned on them); plan call uses
+    reasoning_effort=low (~2s vs ~10s; the slow version caused 4 timeouts under parallel load).
+  - 47 tune q: A v1 47/47, 4.7x gold length, p50 9.8s · B v4 45/47, 2.4x, 6.7s, blind vote 32-7 for B ·
+    C2 v4+planner 44/47, 2.6x, 8.1s (p95 27s), vote 34-7 for C2.
+  - Repeats (3 runs each): q_006 A 3/3, B 0/3, C2 1/3; q_025 A 3/3, B 0/3, C2 2/3; x_047 noisy everywhere.
+    v4's "answer exactly what is asked" narrows qualitative questions (fewer risks searched / strategy points cut).
+  - Defaults unchanged (v1, planner off) pending Saanvi's decision. Spend ~$2.7 today.
+- 2026-11-06 evening, conciseness trial (`eval/concise_trial.py`, results/concise_*), ~$4:
+  - Live prompt-only variants on the 7 fragile q x3: v6 (compact bullets + tables) 16/21, v1c (v1 + short bullets)
+    15/21; q_006 lost again (v1c 0/3). Prompt-only conciseness has now failed 6 times -> dropped.
+  - Replay (rebuild trace, regenerate final turn) is NOT faithful: even unchanged v1 fell to 15/20 and returned
+    empty answers -> don't use it to judge prompts.
+  - Post-hoc editor on saved v1 drafts (one extra call, guards: no new numbers, lead company kept, Sources copied,
+    skip drafts <120 words). Regrading the unchanged draft is the noise floor (q_025 is judge-borderline: same text
+    10/12 or 11/12). Fragile set, 3 rounds pooled: edit_cl (checklist then rewrite) 84/96 = draft 84/96, -32% words;
+    edit_x (delete-only) 44/48 vs draft 42/48 but only -11% words. Openings did not get better (edit_lead variants).
+  - All 47 tune drafts: edit_cl 45/47 vs draft 46/47 (only flip q_025); llm_judge median 186 -> 126 words
+    (4.7x -> 3.2x gold); 26/47 edited, +3.8s, +$0.003 each. Pending Saanvi's decision.

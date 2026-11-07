@@ -1,4 +1,5 @@
-"""Numbers in text, compared at their written precision. Shared by the agent (grounding nudge) and the eval."""
+"""Numbers in text, compared at their written precision, plus small answer-text helpers. Shared by the agent
+(grounding nudge, answer editor) and the eval."""
 
 import re
 from decimal import Decimal
@@ -11,6 +12,9 @@ NUM_RE = re.compile(
     r"|tn\b|bn\b|mn\b|mm\b|[tbmk]\b))?", re.I)
 ABBREVIATIONS = re.compile(r"\b(U\.S|Inc|Corp|Co|Ltd|vs|approx|e\.g|i\.e|No)\.", re.I)
 SOURCES_RE = re.compile(r"^\W*sources?\W*:", re.I | re.M)
+# "fell 3.8%", "a decline of $2.6 billion", "down 4%": the number is a decrease even without a minus sign
+DECLINE_RE = re.compile(r"\b(fell|fall(?:s|ing)?|decreas\w*|declin\w*|down|lower|drop\w*|shr[iau]nk\w*|contract\w*|"
+                        r"negative|loss(?:es)?)\W+(?:\w+\W+){0,2}$", re.I)
 
 
 def parse_numbers(text: str) -> list[dict]:
@@ -24,7 +28,8 @@ def parse_numbers(text: str) -> list[dict]:
         scale = SCALES.get(unit, 1.0)
         out.append({"value": -value if sign else value, "step": step, "scale": scale,
                     "pct": unit.startswith(("%", "percent", "pp")), "unit": unit,
-                    "is_year": not frac and not unit and 1990 <= value <= 2035, "text": m.group(0).strip()})
+                    "is_year": not frac and not unit and 1990 <= value <= 2035, "text": m.group(0).strip(),
+                    "declining": bool(sign) or bool(DECLINE_RE.search(text[max(0, m.start() - 30): m.start()]))})
     return out
 
 
@@ -38,11 +43,22 @@ def numbers_agree(a: float, a_step: float, b: float, b_step: float) -> bool:
     return abs(abs(a) - abs(b)) <= max(a_step, b_step) / 2 * (1 + 1e-9) + 1e-9 * max(abs(b), 1)
 
 
-def number_matches(n: dict, gold: float) -> bool:
-    """Gold may be raw (416161000000) or already in the answer's unit (66.95 for '$66.95 billion')."""
+def number_matches(n: dict, gold: float, unit: str | None = None) -> bool:
+    """Does answer number `n` state the gold value? With `unit` ("usd": gold in raw dollars, "pct": a percentage or
+    percentage points, "plain": a ratio or per-share figure), the answer's unit and direction must match too:
+    '$416.2 million' is not 416.2 billion, '$51.3 billion' is not 51.3%, and 'fell 15.1%' is not +15.1.
+    Without `unit` (old behaviour, kept for checking gold files): either scale, sign ignored."""
     g_step = _step_of(gold)
-    return (numbers_agree(n["value"] * n["scale"], n["step"] * n["scale"], gold, g_step)
-            or numbers_agree(n["value"], n["step"], gold, g_step))
+    if unit is None:
+        return (numbers_agree(n["value"] * n["scale"], n["step"] * n["scale"], gold, g_step)
+                or numbers_agree(n["value"], n["step"], gold, g_step))
+    if gold > 0 and n.get("declining") or gold < 0 and not n.get("declining"):
+        return False
+    if unit == "usd":
+        return not n["pct"] and numbers_agree(n["value"] * n["scale"], n["step"] * n["scale"], gold, g_step)
+    if unit == "pct":
+        return n["pct"] and numbers_agree(n["value"], n["step"], gold, g_step)
+    return not n["pct"] and n["scale"] == 1.0 and numbers_agree(n["value"], n["step"], gold, g_step)
 
 
 def body(answer: str) -> str:
@@ -51,6 +67,22 @@ def body(answer: str) -> str:
     for m in SOURCES_RE.finditer(answer):
         pass
     return answer[: m.start()] if m else answer
+
+
+def first_sentence(answer: str) -> str:
+    lines = [l for l in answer.strip().splitlines() if l.strip() and not l.lstrip().startswith("#")]
+    text = ABBREVIATIONS.sub(lambda m: m.group(0).replace(".", "§"), lines[0] if lines else "")
+    return re.split(r"(?<=[.!?])\s", text, maxsplit=1)[0].replace("§", ".")
+
+
+ENTITY_RES = {"AAPL": re.compile(r"\b(apple|aapl)\b", re.I), "MSFT": re.compile(r"\b(microsoft|msft)\b", re.I),
+              "GOOGL": re.compile(r"\b(alphabet|google|googl|goog)\b", re.I)}
+
+
+def entities_in(text: str) -> list[str]:
+    """Tickers of the companies named in `text`, in order of first mention."""
+    found = [(m.start(), t) for t, r in ENTITY_RES.items() if (m := r.search(text))]
+    return [t for _, t in sorted(found)]
 
 
 TOOL_MULTIPLIERS = (1.0, 100.0, 1e3, 1e6, 1e9, 1e12)  # filing tables are in millions; ratios may become %

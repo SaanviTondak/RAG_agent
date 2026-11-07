@@ -537,3 +537,161 @@ Written because the top three models all scored 32/32. Figures come from SQL (`g
 
 - Numeric gold: `59.952293734293136` (from the filing)
 - Gold pages: MSFT_FY2025_10-K p.33, MSFT_FY2025_10-K p.80
+
+## Part 4: complexity levels 4-7 (added 2026-11-06)
+
+Dependent multi-hop, cross-checks, open-ended synthesis and follow-ups. Holdout questions are marked 🔒. Figures come from SQL or the page text; facts are hand-written (`reviewed: false`).
+
+### x_041 (level 5, planning:dependent, llm_judge, needs sql+pdf)
+
+
+**Q:** Which company grew its operating income the fastest from fiscal year 2024 to fiscal year 2025, and what does that company's 10-K say drove the growth?
+
+**Gold:** Microsoft, with operating income up about 17.4% (from $109.4 billion to $128.5 billion), ahead of Alphabet (about 14.8%) and Apple (about 8.0%). Its FY2025 10-K says operating income increased $19.1 billion or 17% with growth across each of its segments; gross margin increased $22.9 billion or 13%, also with growth across each segment.
+
+- Gold pages: MSFT_FY2025_10-K p.37
+- Facts:
+  1. Microsoft had the fastest operating income growth
+  2. Microsoft's operating income grew about 17.4% (17%), from $109.4 billion to $128.5 billion
+  3. Alphabet's operating income grew about 14.8% and Apple's about 8.0%
+  4. The 10-K says the growth came from (growth across) each of Microsoft's segments
+  5. Gross margin increased $22.9 billion (about 13%)
+
+### x_042 (level 5, planning:dependent, llm_judge, needs sql+pdf)
+
+
+**Q:** Which company spent the largest share of its revenue on research and development in fiscal year 2025, and what does its 10-K say about its investment in AI infrastructure?
+
+**Gold:** Alphabet, at about 15.2% of revenue ($61.1 billion of $402.8 billion; Microsoft about 11.5%, Apple about 8.3%). Its FY2025 10-K says it continues to invest in capital expenditures to scale its technical infrastructure, in particular for AI; it invested heavily in 2025 ($91.4 billion of capital expenditures) and expects to significantly increase that investment in 2026 (servers, network equipment and data centers). It expects the costs of operating that infrastructure (depreciation, energy, equipment, network capacity) to increase significantly because AI requires more compute than its historical offerings.
+
+- Gold pages: GOOGL_FY2025_10-K p.30, GOOGL_FY2025_10-K p.35
+- Facts:
+  1. Alphabet spent the largest share of revenue on R&D
+  2. Alphabet's R&D was about 15.2% of revenue
+  3. Microsoft's R&D share was about 11.5% and Apple's about 8.3%
+  4. The 10-K says Alphabet continues to invest in technical infrastructure, in particular for AI
+  5. The 10-K says Alphabet invested heavily in capital expenditures in 2025 (about $91.4 billion)
+  6. Alphabet expects to significantly increase its technical infrastructure investment in 2026
+  7. The costs of operating the infrastructure (depreciation, energy, equipment, network capacity) are expected to increase significantly because AI needs more compute
+
+### x_043 (level 5, planning:dependent, llm_judge, needs sql+pdf)
+
+
+**Q:** Which of Apple's geographic segments performed worst in fiscal year 2025, and what reason does the 10-K give?
+
+**Gold:** Greater China, the only region to decline: net sales fell about 3.8%, from $66.95 billion to $64.38 billion, while the Americas (+6.8%), Europe (+9.6%), Japan (+14.6%) and Rest of Asia Pacific (+9.9%) grew. The FY2025 10-K says the decrease was primarily due to lower net sales of iPhone, partially offset by higher net sales of Mac.
+
+- Gold pages: AAPL_FY2025_10-K p.24
+- Facts:
+  1. Greater China performed worst (the only region to decline)
+  2. Greater China net sales fell about 3.8%, from $66.95 billion to $64.38 billion
+  3. Apple's other regions grew in FY2025
+  4. The 10-K says the decrease was primarily due to lower net sales of iPhone
+  5. The decrease was partially offset by higher net sales of Mac
+
+### x_044 🔒 (level 5, planning:dependent, llm_judge, needs sql+pdf)
+
+
+**Q:** How much did the company with the lowest current ratio in fiscal year 2025 spend on share repurchases that year?
+
+**Gold:** Apple had the lowest current ratio (about 0.89). It spent $90.7 billion on repurchases of common stock in FY2025 according to its cash flow statement (Note 10 reports 402 million shares repurchased for $89.3 billion; either figure is acceptable).
+
+- Gold pages: AAPL_FY2025_10-K p.34, AAPL_FY2025_10-K p.45
+- Facts:
+  1. Apple had the lowest current ratio in FY2025 (about 0.89)
+  2. Apple's FY2025 share repurchases were about $90.7 billion (cash flow statement) or $89.3 billion (Note 10); either figure counts
+
+### x_045 (level 6, crosscheck:segment_total, llm_judge, needs sql)
+
+
+**Q:** Do Alphabet's segment revenues in the database add up to its total revenue for fiscal year 2025? Explain any difference.
+
+**Gold:** Not exactly. Google Services ($342.7 billion), Google Cloud ($58.7 billion) and Other Bets ($1.5 billion) sum to about $403.0 billion, about $127 million more than total revenue of $402.8 billion. The difference is a $127 million hedging loss, a reconciling item rather than a segment; segments plus hedging equal consolidated revenue.
+
+- Facts:
+  1. The segment revenues do not add up exactly to total revenue
+  2. Google Services, Google Cloud and Other Bets sum to about $403.0 billion
+  3. Alphabet's total revenue was $402.8 billion
+  4. The difference is about $127 million
+  5. The difference is hedging gains (losses), a reconciling item that is not a segment
+
+### x_046 🔒 (level 6, crosscheck:commentary_vs_table, llm_judge, needs sql+pdf)
+
+
+**Q:** Apple's fiscal year 2025 10-K reports that Greater China net sales decreased 4%. Do the figures in the database agree?
+
+**Gold:** Yes. The database shows Greater China revenue of $66.95 billion in FY2024 and $64.38 billion in FY2025, a decline of about 3.8%, which rounds to the 10-K's 4%; the dollar figures match the 10-K's segment table ($66,952 million and $64,377 million).
+
+- Gold pages: AAPL_FY2025_10-K p.24
+- Facts:
+  1. Yes, the database agrees with the 10-K
+  2. Greater China revenue was $66.95 billion in FY2024 and $64.38 billion in FY2025
+  3. The decline is about 3.8%, which rounds to 4%
+
+### x_047 (level 4, synthesis:open_ended, llm_judge, needs pdf)
+
+
+**Q:** How do Microsoft's and Alphabet's fiscal year 2025 10-Ks describe the effect of AI infrastructure on their costs and margins?
+
+**Gold:** Microsoft says scaling its AI infrastructure lowered gross margin percentages: Microsoft Cloud gross margin percentage decreased to 69% driven by the impact of scaling AI infrastructure, offset in part by efficiency gains in Azure, and operating expenses rose on investments in cloud and AI engineering. Alphabet says it is significantly increasing investment in technical infrastructure, in particular for AI, and that the costs of operating it (depreciation, energy, equipment and network capacity) are expected to increase significantly because AI offerings require more compute; Google Cloud's operating income gains were partly offset by higher usage costs for technical infrastructure.
+
+- Gold pages: MSFT_FY2025_10-K p.37, MSFT_FY2025_10-K p.38, GOOGL_FY2025_10-K p.30, GOOGL_FY2025_10-K p.39
+- Facts:
+  1. Microsoft says scaling its AI infrastructure lowered its gross margin percentage
+  2. Microsoft Cloud gross margin percentage decreased to 69%
+  3. Microsoft's margin pressure was offset in part by efficiency gains in Azure
+  4. Microsoft's operating expenses rose on investments in cloud and AI engineering
+  5. Alphabet expects the costs of operating its technical infrastructure (depreciation, energy, equipment, network capacity) to increase significantly
+  6. Alphabet attributes the rising costs to AI requiring more compute than its historical offerings
+  7. Alphabet expects to significantly increase its investment in technical infrastructure in 2026
+  8. Google Cloud's operating income gains were partly offset by higher usage costs for technical infrastructure
+
+### x_048 (level 4, synthesis:close_call, llm_judge, needs sql+pdf)
+
+
+**Q:** Which company had the highest capital expenditures in fiscal year 2025, and which had the highest capital expenditures relative to revenue?
+
+**Gold:** Alphabet spent the most in dollars: $91.4 billion of purchases of property and equipment (Microsoft $64.6 billion, Apple $12.7 billion). Relative to revenue, Microsoft was narrowly highest at about 22.9% ($64.6 billion of $281.7 billion), just ahead of Alphabet at about 22.7% ($91.4 billion of $402.8 billion); Apple was about 3.1%.
+
+- Gold pages: GOOGL_FY2025_10-K p.53, MSFT_FY2025_10-K p.50, AAPL_FY2025_10-K p.34
+- Facts:
+  1. Alphabet had the highest capital expenditures in dollars
+  2. Alphabet's FY2025 capital expenditures were about $91.4 billion
+  3. Microsoft's FY2025 capital expenditures were about $64.6 billion
+  4. Apple's FY2025 capital expenditures were about $12.7 billion
+  5. Microsoft had the highest capital expenditures relative to revenue (about 22.9%)
+  6. Alphabet's capital expenditures were about 22.7% of revenue
+  7. Apple's capital expenditures were about 3.1% of revenue
+
+### x_049 (level 7, followup, llm_judge, needs sql+pdf)
+
+> earlier user: How did Apple's Greater China revenue change between fiscal year 2024 and fiscal year 2025, and why?
+> earlier assistant: Apple's Greater China net sales fell 3.8%, from $66.95 billion in FY2024 to $64.38 billion in FY2025. The FY2025 10-K says the decrease was primarily due to lower net sales of iPhone, partially offset by higher net sales of Mac.
+
+**Q:** Which other region grew the fastest, and why?
+
+**Gold:** Japan grew fastest: net sales rose about 14.6%, from $25.1 billion to $28.7 billion. The FY2025 10-K says the increase was primarily due to higher net sales of iPhone, Services and iPad.
+
+- Gold pages: AAPL_FY2025_10-K p.24
+- Facts:
+  1. Japan grew the fastest
+  2. Japan's net sales grew about 14.6%
+  3. Japan's net sales rose from $25.1 billion to $28.7 billion
+  4. The 10-K attributes the increase primarily to higher net sales of iPhone
+  5. The 10-K attributes the increase to higher net sales of Services
+  6. The 10-K attributes the increase to higher net sales of iPad
+
+### x_050 🔒 (level 7, followup, llm_judge, needs sql)
+
+> earlier user: What was Microsoft's total revenue in fiscal year 2025?
+> earlier assistant: Microsoft's total revenue in fiscal year 2025 (ended June 30, 2025) was $281.7 billion.
+
+**Q:** How much of that came from the United States, and how did that share change from the year before?
+
+**Gold:** $144.5 billion, or about 51.3% of FY2025 revenue, came from the United States, up from about 50.9% ($124.7 billion of $245.1 billion) in FY2024, an increase of about 0.4 percentage points.
+
+- Facts:
+  1. About $144.5 billion of FY2025 revenue came from the United States
+  2. The United States was about 51.3% of FY2025 revenue
+  3. The United States was about 50.9% of FY2024 revenue
+  4. The United States share rose by about 0.4 percentage points

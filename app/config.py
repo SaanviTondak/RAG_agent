@@ -44,10 +44,19 @@ PRICES = {
     "minimax-m3": (0.30, 0.06, 1.20),
 }
 
-# Answer-format version in app/prompts.py; chosen by the eval.
-PROMPT_VERSION = os.getenv("PROMPT_VERSION", "v1")
+# Answer-format version in app/prompts.py; chosen by the eval. v1r = v1 + read Item 1A for risk-factor questions
+# (q_006 and x_014 passed 3/3 each in the final tuning runs; plans/final_eval.md).
+PROMPT_VERSION = os.getenv("PROMPT_VERSION", "v1r")
 # Send the model back once if a percentage in its draft appears in no tool result (app/agent.py).
 GROUNDING_NUDGE = os.getenv("GROUNDING_NUDGE", "1") == "1"  # on: fired 3/3 on q_008 and fixed it, ~no cost
+# "auto": plan multi-part questions first (app/planner.py); "on": plan every question; "off": never plan.
+# Off by default: on 47 tuning questions it did not improve accuracy (45/47 vs 47/47) and was slower. The UI's
+# "Plan first" toggle turns it on per question.
+PLANNER = os.getenv("PLANNER", "off")
+# Shorten long final answers with one extra call (app/editor.py). Not EDITOR: that is the shell's text editor.
+# Off: in the final tuning runs it cut length 29% but made 2 of 44 passing answers fail (dropped "iCloud"; kept the
+# 10-K's rounded 21% instead of 21.5%), failing the rule fixed in plans/final_eval.md before the runs.
+ANSWER_EDITOR = os.getenv("ANSWER_EDITOR", "0") == "1"
 
 TICKERS = {"AAPL": "Apple", "MSFT": "Microsoft", "GOOGL": "Alphabet"}
 

@@ -1,0 +1,16 @@
+{
+  "set": "tune",
+  "ids": "q_001,q_006,q_008,q_011,q_012,q_014,q_017,q_018,q_022,q_025,x_014,x_036,x_047",
+  "model": "accounts/fireworks/models/glm-5p3",
+  "judge": "accounts/fireworks/models/deepseek-v4p1-flash",
+  "runs": 2,
+  "rerank": true,
+  "prompt": "v1r",
+  "system": "agent",
+  "grounding_nudge": true,
+  "planner": "off",
+  "editor": false,
+  "fact_split_usd": 0.0,
+  "graded_at": "2026-11-06 23:49",
+  "derived_from": "20261106-2329_tune_glm-5p3_v1r_gn_ed_final_rep"
+}
