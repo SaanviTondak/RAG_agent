@@ -59,7 +59,7 @@ Let the eval decide. We measure routing accuracy: did the tools used match requi
     - just state assumption and answer anyway 
 
 13. no falling back to web search 
-14. no llm as a grader - why 
+14. no llm as a relevance grader - why 
     - in tool calling loop agent can already see what came back and search again 
 
 15. why are we not using LangGraph 
@@ -70,3 +70,71 @@ Let the eval decide. We measure routing accuracy: did the tools used match requi
 
 Keep prompts generic, with no model-specific tricks.
 Run a second model occasionally during development to catch prompt bias early.
+
+
+
+
+#search decisions 
+
+1. filter by company and year 
+2. hybrid search to pick results 
+    - top 30 chunks from bm25 + top 30 from embeddings -> merge using RRF -> reranker to rescored merged top 30 -> agent gets top 6 chunks 
+
+3. keyword search -> lowercase, split on punctuation, keep numbers, no word stemming 
+
+4. each result -> chunk id, citation, section label, chunk text, parent id 
+
+
+
+#tools 
+
+
+1. query_sql 
+    - read only, errors go back to agent to fix query 
+    - llms miscount zeros -> put commas in large numbers (40,000,000)
+
+2. search_filings -> returns top 6 results 
+
+
+3. read_section 
+    - parent_id mode
+    - ticker + fiscal_year + item mode 
+        - capped at 40k characters (trade-off between answer completeness and cost/speed)
+
+4. calculate 
+    - takes several math expressions at once -> one call can do all comparisons -> saves agent turns 
+
+
+
+#system prompt 
+
+1. role, db schema, segment region and year coverage,
+data caveats 
+routing rules - The database is for the figures it holds.
+The filings are for explanations, plus numbers the database doesn't have (YouTube, Search, Azure, capex…).
+"Why" or "explain" questions need both.
+If the two sources conflict, say so and prefer the newer filing.
+
+math rule - all derived number must come from calc or sql 
+
+
+2. answer 
+    - first sentence is direct ans then explain 
+    - sources 
+    - assumptions if any stated
+
+
+#agent 
+
+1. budget 
+    - max 8 tool calls and 10 llm turns (lets see eval distribution)
+
+2. first turn must call tool 
+3. pre pass hints 
+4. coverage nudges (filing or number nudge if not done)
+
+5. fallback when budget out -> final llm call w no tools to ans and say what missing 
+
+6. context limits - need to justify 
+
+7. output - ans, sources, trace, usage 

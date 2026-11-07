@@ -26,9 +26,9 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
 from app import agent
-from app.config import AGENT_TIME_BUDGET_S, CHAT_MODEL, PDF_DIR
+from app.config import AGENT_TIME_BUDGET_S, CHAT_MODEL, FIREWORKS_API_KEY, PDF_DIR
 from app.evidence import cited_evidence, step_view, steps_view
-from app.llm import DeadlineExceeded, ProviderError
+from app.llm import MISSING_KEY, DeadlineExceeded, ProviderError
 from app.numbers import body
 from app.retrieval import get_index
 
@@ -170,6 +170,8 @@ async def _stream(question: str, history: list[dict], kwargs: dict):
 
 
 def main() -> None:
+    if not FIREWORKS_API_KEY:
+        raise SystemExit(MISSING_KEY)  # fail at start-up, not on the first question
     logging.basicConfig(level=logging.INFO)
     uvicorn.run(app, host=os.getenv("HOST", "127.0.0.1"), port=int(os.getenv("PORT", "8000")))
 

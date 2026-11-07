@@ -17,9 +17,13 @@ def fake_response(content="The answer.", tool_calls=None):
 
 
 class TimeBudget(unittest.TestCase):
+    def test_missing_key_is_reported_when_a_model_is_called(self):
+        with mock.patch.object(llm, "FIREWORKS_API_KEY", ""), self.assertRaises(llm.MissingKeyError):
+            llm._retry(lambda: None)
+
     def test_expired_deadline_raises_before_calling(self):
         calls = []
-        with self.assertRaises(llm.DeadlineExceeded):
+        with mock.patch.object(llm, "FIREWORKS_API_KEY", "test"), self.assertRaises(llm.DeadlineExceeded):
             llm._retry(lambda: calls.append(1), deadline=time.time() - 1)
         self.assertEqual(calls, [])
 

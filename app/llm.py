@@ -8,16 +8,19 @@ from openai import APIConnectionError, APIStatusError, OpenAI, RateLimitError
 
 from app.config import EMBED_MODEL, FIREWORKS_API_KEY, FIREWORKS_BASE_URL, PRICES, RERANK_MODEL
 
-if not FIREWORKS_API_KEY:
-    raise SystemExit("FIREWORKS_API_KEY is not set. Put it in .env or export it in your shell.")
-
-client = OpenAI(api_key=FIREWORKS_API_KEY, base_url=FIREWORKS_BASE_URL, max_retries=0, timeout=120)
+MISSING_KEY = "FIREWORKS_API_KEY is not set. Put it in .env or export it in your shell."
+# The key is checked when a model is called, not on import, so the tests and tools that make no calls run without it.
+client = OpenAI(api_key=FIREWORKS_API_KEY or "unset", base_url=FIREWORKS_BASE_URL, max_retries=0, timeout=120)
 
 RETRIES = 4
 
 
 class ProviderError(RuntimeError):
     """Fireworks kept failing (rate limits, server errors, timeouts) after all retries."""
+
+
+class MissingKeyError(RuntimeError):
+    """No Fireworks API key is configured."""
 
 
 class DeadlineExceeded(TimeoutError):
@@ -29,6 +32,8 @@ class DeadlineExceeded(TimeoutError):
 
 
 def _retry(fn, deadline: float | None = None):
+    if not FIREWORKS_API_KEY:
+        raise MissingKeyError(MISSING_KEY)
     for attempt in range(RETRIES):
         if deadline is not None and time.time() >= deadline:
             raise DeadlineExceeded("time budget exhausted waiting for Fireworks")

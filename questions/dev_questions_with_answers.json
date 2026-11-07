@@ -4,7 +4,7 @@
     "question": "What was Apple's total net revenue in fiscal year 2025?",
     "tier": 1,
     "gold_answer": "$416.2 billion",
-    "gold_answer_numeric": 416161000000,
+    "gold_answer_numeric": 416161000000,  
     "required_modalities": [
       "sql"
     ],

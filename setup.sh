@@ -32,6 +32,7 @@ from prepare_data import count_valid_pdfs
 print(count_valid_pdfs(Path("data/pdfs")))
 PY
 )
+valid_pdf_count=$(echo "$valid_pdf_count" | tail -n 1)  # a library warning on stdout must not break the count
 
 if [ "$valid_pdf_count" -lt 6 ]; then
     echo "Installing Playwright Chromium browser (needed to render PDFs)..."
@@ -65,13 +66,25 @@ else
 fi
 
 echo ""
+echo "Installing the research assistant's dependencies..."
+uv pip install -r requirements.txt
+
+if [ -f "data/index/chunks.jsonl" ] && [ -f "data/index/embeddings.npy" ]; then
+    echo "Found the prebuilt search index in data/index/"
+else
+    echo "Search index missing: build it with 'python -m app.ingest' after setting FIREWORKS_API_KEY (embeds the filings)."
+fi
+
+if [ ! -f ".env" ]; then
+    cp .env.example .env
+    echo ""
+    echo "Created .env from .env.example: add your Fireworks API key to it (FIREWORKS_API_KEY=...)."
+fi
+
+echo ""
 echo "Setup complete."
 echo ""
 echo "Next steps:"
-echo "  1. Activate the environment: source .venv/bin/activate"
-echo "  2. Inspect the generated data in data/financials.db and data/pdfs/"
-echo "  3. Review questions/dev_questions.json"
-echo "  4. Review questions/dev_questions_with_answers.json for the public dev answer key"
-echo "  5. Copy questions/dev_answers_example.json to dev_answers.json and fill it in"
-echo "  6. Build your local agent and verify a reviewer can run it locally"
-echo "  7. Build your own evaluation harness using the public dev questions and answers"
+echo "  1. Put your Fireworks API key in .env (FIREWORKS_API_KEY=...)"
+echo "  2. Start the app:   .venv/bin/python -m app.server"
+echo "  3. Open http://localhost:8000, or POST to http://localhost:8000/api/chat"
